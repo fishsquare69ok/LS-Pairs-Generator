@@ -43,13 +43,13 @@
                     // 檢查左邊的標的是否已經有完整的格式
                     let leftSymbol = leftInput[i].trim();
                     if (!binanceFormat.test(leftSymbol)) {
-                        leftSymbol = `BINANCE:${leftSymbol}USDT.P`;
+                        leftSymbol = handleSymbolFormat(leftSymbol);
                     }
 
                     // 檢查右邊的標的是否已經有完整的格式
                     let rightSymbol = rightInput[j].trim();
                     if (!binanceFormat.test(rightSymbol)) {
-                        rightSymbol = `BINANCE:${rightSymbol}USDT.P`;
+                        rightSymbol = handleSymbolFormat(rightSymbol);
                     }
 
                     result += `${leftSymbol}/${rightSymbol},\n`;
@@ -62,18 +62,4 @@
 
             // 建立純文字檔案
             const blob = new Blob([result.trim()], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'symbol_pairs.txt';
-
-            // 自動點擊下載連結
-            link.click();
-        }
-
-        // 分割輸入：根據逗號、換行、空格分割
-        function splitInput(input) {
-            return input.split(/[\s,]+/).filter(item => item.trim() !== '');
-        }
-    </script>
-</body>
-</html>
+            const link = document.createElement('
