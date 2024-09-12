@@ -34,23 +34,12 @@
             const rightInput = splitInput(document.getElementById('rightInput').value.trim());
             let result = '';
 
-            // 定義格式的正規表達式
-            const binanceFormat = /^BINANCE:.*USDT\.P$/;
-
             // 產生所有配對組合
             for (let i = 0; i < leftInput.length; i++) {
                 for (let j = 0; j < rightInput.length; j++) {
-                    // 檢查左邊的標的是否已經有完整的格式
-                    let leftSymbol = leftInput[i].trim();
-                    if (!binanceFormat.test(leftSymbol)) {
-                        leftSymbol = handleSymbolFormat(leftSymbol);
-                    }
-
-                    // 檢查右邊的標的是否已經有完整的格式
-                    let rightSymbol = rightInput[j].trim();
-                    if (!binanceFormat.test(rightSymbol)) {
-                        rightSymbol = handleSymbolFormat(rightSymbol);
-                    }
+                    // 處理並格式化標的
+                    let leftSymbol = handleSymbolFormat(leftInput[i].trim());
+                    let rightSymbol = handleSymbolFormat(rightInput[j].trim());
 
                     result += `${leftSymbol}/${rightSymbol},\n`;
                 }
@@ -62,4 +51,29 @@
 
             // 建立純文字檔案
             const blob = new Blob([result.trim()], { type: 'text/plain' });
-            const link = document.createElement('
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'symbol_pairs.txt';
+
+            // 自動點擊下載連結
+            link.click();
+        }
+
+        // 分割輸入：根據逗號、換行、空格分割
+        function splitInput(input) {
+            return input.split(/[\s,]+/).filter(item => item.trim() !== '');
+        }
+
+        // 處理標的格式：替換USDC.P為USDT.P，並自動加上BINANCE和USDT.P
+        function handleSymbolFormat(symbol) {
+            // 如果標的中有USDC.P，將其替換為USDT.P
+            symbol = symbol.replace('USDC.P', 'USDT.P');
+            // 如果標的沒有正確格式，則自動加上BINANCE:和USDT.P
+            if (!/^BINANCE:/.test(symbol)) {
+                symbol = `BINANCE:${symbol}USDT.P`;
+            }
+            return symbol;
+        }
+    </script>
+</body>
+</html>
