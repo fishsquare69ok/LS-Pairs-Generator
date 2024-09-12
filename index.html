@@ -12,11 +12,11 @@
         <form id="mainForm">
             <div class="form-row">
                 <div class="form-group col-md-6">
-                    <label for="leftInput">前五強標的</label>
+                    <label for="leftInput">配對標的組</label>
                     <textarea class="form-control" id="leftInput" rows="5" placeholder="輸入左邊標的，每行一個"></textarea>
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="rightInput">末五強標的</label>
+                    <label for="rightInput">配對標的組</label>
                     <textarea class="form-control" id="rightInput" rows="5" placeholder="輸入右邊標的，每行一個"></textarea>
                 </div>
             </div>
@@ -34,10 +34,25 @@
             const rightInput = document.getElementById('rightInput').value.trim().split('\n');
             let result = '';
 
+            // 定義格式的正規表達式
+            const binanceFormat = /^BINANCE:.*USDT\.P$/;
+
             // 產生所有配對組合
             for (let i = 0; i < leftInput.length; i++) {
                 for (let j = 0; j < rightInput.length; j++) {
-                    result += `BINANCE:${leftInput[i].trim()}USDT.P/BINANCE:${rightInput[j].trim()}USDT.P,\n`;
+                    // 檢查左邊的標的是否已經有完整的格式
+                    let leftSymbol = leftInput[i].trim();
+                    if (!binanceFormat.test(leftSymbol)) {
+                        leftSymbol = `BINANCE:${leftSymbol}USDT.P`;
+                    }
+
+                    // 檢查右邊的標的是否已經有完整的格式
+                    let rightSymbol = rightInput[j].trim();
+                    if (!binanceFormat.test(rightSymbol)) {
+                        rightSymbol = `BINANCE:${rightSymbol}USDT.P`;
+                    }
+
+                    result += `${leftSymbol}/${rightSymbol},\n`;
                 }
             }
 
