@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>標的配對工具</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>標的配對工具</h2>
+        <form id="mainForm">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="leftInput">前五強標的</label>
+                    <textarea class="form-control" id="leftInput" rows="5" placeholder="輸入左邊標的，每行一個"></textarea>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="rightInput">末五強標的</label>
+                    <textarea class="form-control" id="rightInput" rows="5" placeholder="輸入右邊標的，每行一個"></textarea>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="generatePairs()">產生配對並複製到剪貼簿</button>
+        </form>
+        <div class="form-group mt-3">
+            <label for="result">生成結果</label>
+            <textarea class="form-control" id="result" rows="10"></textarea>
+        </div>
+    </div>
+
+    <script>
+        function generatePairs() {
+            const leftInput = document.getElementById('leftInput').value.trim().split('\n');
+            const rightInput = document.getElementById('rightInput').value.trim().split('\n');
+            let result = '';
+
+            for (let i = 0; i < leftInput.length; i++) {
+                for (let j = 0; j < rightInput.length; j++) {
+                    result += `BINANCE:${leftInput[i].trim()}USDT.P/BINANCE:${rightInput[j].trim()}USDT.P,\n`;
+                }
+            }
+
+            const resultTextarea = document.getElementById('result');
+            resultTextarea.value = result.trim();
+            resultTextarea.select();
+            document.execCommand('copy');
+        }
+    </script>
+</body>
+</html>
