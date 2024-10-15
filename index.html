@@ -39,12 +39,15 @@
             const rightInput = splitInput(document.getElementById('rightInput').value.trim());
             result = ''; // 每次點擊生成時重置結果
 
-            // 產生所有配對組合
+            // 產生所有配對組合，排除左右相同的組合
             for (let i = 0; i < leftInput.length; i++) {
                 for (let j = 0; j < rightInput.length; j++) {
                     let leftSymbol = handleSymbolFormat(leftInput[i].trim());
                     let rightSymbol = handleSymbolFormat(rightInput[j].trim());
-                    result += `${leftSymbol}/${rightSymbol},\n`;
+                    
+                    if (leftSymbol !== rightSymbol) {  // 避免左右標的一樣
+                        result += `${leftSymbol}/${rightSymbol},\n`;
+                    }
                 }
             }
 
