@@ -20,8 +20,9 @@
                     <textarea class="form-control" id="rightInput" rows="5" placeholder="使用大群內強勢標的格式以逗號分隔貼上、或是H爸RS清單格式皆可"></textarea>
                 </div>
             </div>
-            <!-- 分離的按鈕 -->
-            <button type="button" class="btn btn-primary" onclick="generatePairs()">產生配對</button>
+            <!-- 新增兩個按鈕 -->
+            <button type="button" class="btn btn-primary" onclick="generateFullPairs()">產生完整配對</button>
+            <button type="button" class="btn btn-success" onclick="generateUniquePairs()">產生不重複配對</button>
             <button type="button" class="btn btn-secondary" onclick="downloadResult()">下載 .txt 檔案</button>
         </form>
         <div class="form-group mt-3">
@@ -33,8 +34,8 @@
     <script>
         let result = ''; // 定義 result 為全局變數，用來存儲生成的結果
 
-        // 產生配對的函數
-        function generatePairs() {
+        // 產生完整配對的函數
+        function generateFullPairs() {
             const leftInput = splitInput(document.getElementById('leftInput').value.trim());
             const rightInput = splitInput(document.getElementById('rightInput').value.trim());
             result = ''; // 每次點擊生成時重置結果
@@ -47,6 +48,34 @@
                     
                     if (leftSymbol !== rightSymbol) {  // 避免左右標的一樣
                         result += `${leftSymbol}/${rightSymbol},\n`;
+                    }
+                }
+            }
+
+            // 將結果顯示在 textarea 中
+            const resultTextarea = document.getElementById('result');
+            resultTextarea.value = result.trim();
+        }
+
+        // 產生不重複配對的函數
+        function generateUniquePairs() {
+            const leftInput = splitInput(document.getElementById('leftInput').value.trim());
+            const rightInput = splitInput(document.getElementById('rightInput').value.trim());
+            const uniquePairs = new Set(); // 用來存儲已生成的配對，避免重複
+            result = ''; // 每次點擊生成時重置結果
+
+            for (let i = 0; i < leftInput.length; i++) {
+                for (let j = 0; j < rightInput.length; j++) {
+                    let leftSymbol = handleSymbolFormat(leftInput[i].trim());
+                    let rightSymbol = handleSymbolFormat(rightInput[j].trim());
+                    
+                    if (leftSymbol !== rightSymbol) {
+                        // 生成唯一配對，避免順序不同但內容相同的配對
+                        const pair = [leftSymbol, rightSymbol].sort().join('/');
+                        if (!uniquePairs.has(pair)) {
+                            uniquePairs.add(pair);
+                            result += `${pair},\n`;
+                        }
                     }
                 }
             }
