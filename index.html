@@ -1,149 +1,139 @@
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-
-const TradingPairsGenerator = () => {
-  const [leftInput, setLeftInput] = useState('');
-  const [rightInput, setRightInput] = useState('');
-  const [result, setResult] = useState('');
-
-  // 處理標的格式：自動加上BINANCE和USDT.P
-  const handleSymbolFormat = (symbol) => {
-    symbol = symbol.trim().toUpperCase();
-    symbol = symbol.replace('USDC.P', 'USDT.P');
-    if (!/^BINANCE:/.test(symbol)) {
-      symbol = `BINANCE:${symbol}USDT.P`;
-    }
-    return symbol;
-  };
-
-  // 分割輸入：根據逗號、換行、空格分割
-  const splitInput = (input) => {
-    return input.split(/[\s,]+/).filter(item => item.trim() !== '');
-  };
-
-  // 產生完整配對
-  const generateFullPairs = () => {
-    const leftSymbols = splitInput(leftInput);
-    const rightSymbols = splitInput(rightInput);
-    let pairs = [];
-
-    leftSymbols.forEach(left => {
-      rightSymbols.forEach(right => {
-        const leftFormatted = handleSymbolFormat(left);
-        const rightFormatted = handleSymbolFormat(right);
-        
-        if (leftFormatted !== rightFormatted) {
-          pairs.push(`${leftFormatted}/${rightFormatted}`);
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易對配對工具</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
         }
-      });
-    });
-
-    setResult(pairs.join(',\n'));
-  };
-
-  // 產生不重複配對
-  const generateUniquePairs = () => {
-    // 合併左右兩邊的輸入並去重
-    const leftSymbols = splitInput(leftInput);
-    const rightSymbols = splitInput(rightInput);
-    const allSymbols = [...new Set([...leftSymbols, ...rightSymbols])];
-    
-    let pairs = [];
-
-    // 兩兩配對，避免重複
-    for (let i = 0; i < allSymbols.length; i++) {
-      for (let j = i + 1; j < allSymbols.length; j++) {
-        const symbol1 = handleSymbolFormat(allSymbols[i]);
-        const symbol2 = handleSymbolFormat(allSymbols[j]);
-        pairs.push(`${symbol1}/${symbol2},`);
-      }
-    }
-
-    // 移除最後一個逗號
-    let result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
-    setResult(result);
-  };
-
-  // 下載結果
-  const downloadResult = () => {
-    if (!result) return;
-    
-    const blob = new Blob([result], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'trading_pairs.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>交易對配對工具</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              配對標的組 (左)
-            </label>
-            <textarea
-              className="w-full h-40 p-2 border rounded-md"
-              value={leftInput}
-              onChange={(e) => setLeftInput(e.target.value)}
-              placeholder="輸入標的，用逗號或換行分隔"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              配對標的組 (右)
-            </label>
-            <textarea
-              className="w-full h-40 p-2 border rounded-md"
-              value={rightInput}
-              onChange={(e) => setRightInput(e.target.value)}
-              placeholder="輸入標的，用逗號或換行分隔"
-            />
-          </div>
+        .result-area {
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="mb-4">交易對配對工具</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="leftInput">配對標的組 (左)</label>
+                    <textarea class="form-control" id="leftInput" rows="5" 
+                        placeholder="請輸入標的，用逗號或換行分隔"></textarea>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="rightInput">配對標的組 (右)</label>
+                    <textarea class="form-control" id="rightInput" rows="5" 
+                        placeholder="請輸入標的，用逗號或換行分隔"></textarea>
+                </div>
+            </div>
         </div>
         
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={generateFullPairs}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            產生完整配對
-          </button>
-          <button
-            onClick={generateUniquePairs}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            產生不重複配對
-          </button>
-          <button
-            onClick={downloadResult}
-            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-          >
-            下載結果
-          </button>
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
+            <button type="button" class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
+            <button type="button" class="btn btn-secondary" onclick="downloadResult()">下載結果</button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            生成結果
-          </label>
-          <textarea
-            className="w-full h-60 p-2 border rounded-md font-mono text-sm"
-            value={result}
-            readOnly
-          />
+        <div class="form-group">
+            <label for="result">生成結果</label>
+            <textarea class="form-control result-area" id="result" rows="15" readonly></textarea>
         </div>
-      </CardContent>
-    </Card>
-  );
-};
+    </div>
 
-export default TradingPairsGenerator;
+    <script>
+        let result = ''; // 全局變數存儲結果
+
+        // 處理標的格式：自動加上BINANCE和USDT.P
+        function handleSymbolFormat(symbol) {
+            symbol = symbol.trim().toUpperCase();
+            symbol = symbol.replace('USDC.P', 'USDT.P');
+            if (!/^BINANCE:/.test(symbol)) {
+                symbol = `BINANCE:${symbol}USDT.P`;
+            }
+            return symbol;
+        }
+
+        // 分割輸入：根據逗號、換行、空格分割
+        function splitInput(input) {
+            return input.split(/[\s,]+/).filter(item => item.trim() !== '');
+        }
+
+        // 產生完整配對
+        function generateFullPairs() {
+            const leftInput = document.getElementById('leftInput').value;
+            const rightInput = document.getElementById('rightInput').value;
+            
+            const leftSymbols = splitInput(leftInput);
+            const rightSymbols = splitInput(rightInput);
+            let pairs = [];
+
+            // 產生所有配對組合
+            leftSymbols.forEach(left => {
+                rightSymbols.forEach(right => {
+                    const leftFormatted = handleSymbolFormat(left);
+                    const rightFormatted = handleSymbolFormat(right);
+                    
+                    if (leftFormatted !== rightFormatted) {
+                        pairs.push(`${leftFormatted}/${rightFormatted},`);
+                    }
+                });
+            });
+
+            // 移除最後一個逗號
+            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            document.getElementById('result').value = result;
+        }
+
+        // 產生不重複配對
+        function generateUniquePairs() {
+            const leftInput = document.getElementById('leftInput').value;
+            const rightInput = document.getElementById('rightInput').value;
+            
+            // 合併左右兩邊的輸入並去重
+            const leftSymbols = splitInput(leftInput);
+            const rightSymbols = splitInput(rightInput);
+            const allSymbols = [...new Set([...leftSymbols, ...rightSymbols])];
+            
+            let pairs = [];
+
+            // 兩兩配對，避免重複
+            for (let i = 0; i < allSymbols.length; i++) {
+                for (let j = i + 1; j < allSymbols.length; j++) {
+                    const symbol1 = handleSymbolFormat(allSymbols[i]);
+                    const symbol2 = handleSymbolFormat(allSymbols[j]);
+                    pairs.push(`${symbol1}/${symbol2},`);
+                }
+            }
+
+            // 移除最後一個逗號
+            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            document.getElementById('result').value = result;
+        }
+
+        // 下載結果
+        function downloadResult() {
+            if (!result) {
+                alert('請先產生配對再下載');
+                return;
+            }
+
+            const blob = new Blob([result], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'trading_pairs.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
