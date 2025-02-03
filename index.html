@@ -38,6 +38,7 @@
         <div class="mb-3">
             <button type="button" class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
             <button type="button" class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
+            <button type="button" class="btn btn-info mr-2" onclick="generateOneWayPairs()">單向配對</button>
             <button type="button" class="btn btn-secondary" onclick="downloadResult()">下載結果</button>
         </div>
 
@@ -48,9 +49,8 @@
     </div>
 
     <script>
-        let result = ''; // 全局變數存儲結果
+        let result = '';
 
-        // 處理標的格式：自動加上BINANCE和USDT.P
         function handleSymbolFormat(symbol) {
             symbol = symbol.trim().toUpperCase();
             symbol = symbol.replace('USDC.P', 'USDT.P');
@@ -60,13 +60,55 @@
             return symbol;
         }
 
-        // 分割輸入：根據逗號、換行、空格分割
         function splitInput(input) {
             return input.split(/[\s,]+/).filter(item => item.trim() !== '');
         }
 
-        // 產生完整配對
         function generateFullPairs() {
+            const leftInput = document.getElementById('leftInput').value;
+            const rightInput = document.getElementById('rightInput').value;
+            
+            const leftSymbols = splitInput(leftInput);
+            const rightSymbols = splitInput(rightInput);
+            const allSymbols = [...new Set([...leftSymbols, ...rightSymbols])];
+            let pairs = [];
+
+            for (let i = 0; i < allSymbols.length; i++) {
+                for (let j = 0; j < allSymbols.length; j++) {
+                    if (i !== j) {
+                        const symbol1 = handleSymbolFormat(allSymbols[i]);
+                        const symbol2 = handleSymbolFormat(allSymbols[j]);
+                        pairs.push(`${symbol1}/${symbol2},`);
+                    }
+                }
+            }
+
+            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            document.getElementById('result').value = result;
+        }
+
+        function generateUniquePairs() {
+            const leftInput = document.getElementById('leftInput').value;
+            const rightInput = document.getElementById('rightInput').value;
+            
+            const leftSymbols = splitInput(leftInput);
+            const rightSymbols = splitInput(rightInput);
+            const allSymbols = [...new Set([...leftSymbols, ...rightSymbols])];
+            let pairs = [];
+
+            for (let i = 0; i < allSymbols.length; i++) {
+                for (let j = i + 1; j < allSymbols.length; j++) {
+                    const symbol1 = handleSymbolFormat(allSymbols[i]);
+                    const symbol2 = handleSymbolFormat(allSymbols[j]);
+                    pairs.push(`${symbol1}/${symbol2},`);
+                }
+            }
+
+            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            document.getElementById('result').value = result;
+        }
+
+        function generateOneWayPairs() {
             const leftInput = document.getElementById('leftInput').value;
             const rightInput = document.getElementById('rightInput').value;
             
@@ -74,7 +116,6 @@
             const rightSymbols = splitInput(rightInput);
             let pairs = [];
 
-            // 產生所有配對組合
             leftSymbols.forEach(left => {
                 rightSymbols.forEach(right => {
                     const leftFormatted = handleSymbolFormat(left);
@@ -86,38 +127,10 @@
                 });
             });
 
-            // 移除最後一個逗號
             result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
             document.getElementById('result').value = result;
         }
 
-        // 產生不重複配對
-        function generateUniquePairs() {
-            const leftInput = document.getElementById('leftInput').value;
-            const rightInput = document.getElementById('rightInput').value;
-            
-            // 合併左右兩邊的輸入並去重
-            const leftSymbols = splitInput(leftInput);
-            const rightSymbols = splitInput(rightInput);
-            const allSymbols = [...new Set([...leftSymbols, ...rightSymbols])];
-            
-            let pairs = [];
-
-            // 兩兩配對，避免重複
-            for (let i = 0; i < allSymbols.length; i++) {
-                for (let j = i + 1; j < allSymbols.length; j++) {
-                    const symbol1 = handleSymbolFormat(allSymbols[i]);
-                    const symbol2 = handleSymbolFormat(allSymbols[j]);
-                    pairs.push(`${symbol1}/${symbol2},`);
-                }
-            }
-
-            // 移除最後一個逗號
-            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
-            document.getElementById('result').value = result;
-        }
-
-        // 下載結果
         function downloadResult() {
             if (!result) {
                 alert('請先產生配對再下載');
