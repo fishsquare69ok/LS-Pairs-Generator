@@ -61,6 +61,7 @@
         }
 
         function splitInput(input) {
+            // 修正分割邏輯，確保正確處理所有輸入
             return input.split(/[\s,]+/).filter(item => item.trim() !== '');
         }
 
@@ -78,12 +79,14 @@
                     if (i !== j) {
                         const symbol1 = handleSymbolFormat(allSymbols[i]);
                         const symbol2 = handleSymbolFormat(allSymbols[j]);
-                        pairs.push(`${symbol1}/${symbol2},`);
+                        // 移除尾部逗號
+                        pairs.push(`${symbol1}/${symbol2}`);
                     }
                 }
             }
 
-            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            // 修正結果格式
+            result = pairs.join(',\n');
             document.getElementById('result').value = result;
         }
 
@@ -100,11 +103,13 @@
                 for (let j = i + 1; j < allSymbols.length; j++) {
                     const symbol1 = handleSymbolFormat(allSymbols[i]);
                     const symbol2 = handleSymbolFormat(allSymbols[j]);
-                    pairs.push(`${symbol1}/${symbol2},`);
+                    // 移除尾部逗號
+                    pairs.push(`${symbol1}/${symbol2}`);
                 }
             }
 
-            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            // 修正結果格式
+            result = pairs.join(',\n');
             document.getElementById('result').value = result;
         }
 
@@ -112,22 +117,27 @@
             const leftInput = document.getElementById('leftInput').value;
             const rightInput = document.getElementById('rightInput').value;
             
+            // 正確處理輸入
             const leftSymbols = splitInput(leftInput);
             const rightSymbols = splitInput(rightInput);
             let pairs = [];
 
+            // 確保左側每個標的與右側每個標的配對
             leftSymbols.forEach(left => {
                 rightSymbols.forEach(right => {
                     const leftFormatted = handleSymbolFormat(left);
                     const rightFormatted = handleSymbolFormat(right);
                     
+                    // 只過濾掉相同標的的配對
                     if (leftFormatted !== rightFormatted) {
-                        pairs.push(`${leftFormatted}/${rightFormatted},`);
+                        // 移除尾部逗號
+                        pairs.push(`${leftFormatted}/${rightFormatted}`);
                     }
                 });
             });
 
-            result = pairs.length > 0 ? pairs.slice(0, -1).join('\n') + ',' : '';
+            // 修正結果格式
+            result = pairs.join(',\n');
             document.getElementById('result').value = result;
         }
 
