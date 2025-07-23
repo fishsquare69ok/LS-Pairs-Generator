@@ -23,6 +23,17 @@
             display: none;
             color: #007bff;
         }
+        .custom-pairing-options {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .option-description {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -87,7 +98,46 @@
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-warning" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
+            
+            <!-- 新增自訂標的配對選項 -->
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="enableCustomPairing">
+                <label class="form-check-label" for="enableCustomPairing">
+                    <strong>加入自訂標的配對</strong>
+                </label>
+            </div>
+            
+            <div class="custom-pairing-options" id="customPairingOptions" style="display: none;">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="customAsStrong">
+                    <label class="form-check-label" for="customAsStrong">
+                        自訂標的作為強勢組
+                    </label>
+                    <div class="option-description">自訂標的 vs RS弱勢組</div>
+                </div>
+                
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="customAsWeak">
+                    <label class="form-check-label" for="customAsWeak">
+                        自訂標的作為弱勢組
+                    </label>
+                    <div class="option-description">RS強勢組 vs 自訂標的</div>
+                </div>
+                
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="customAsBoth" checked>
+                    <label class="form-check-label" for="customAsBoth">
+                        自訂標的同時作為強勢和弱勢
+                    </label>
+                    <div class="option-description">自訂標的 vs RS弱勢組 + RS強勢組 vs 自訂標的</div>
+                </div>
+                
+                <small class="text-muted">
+                    <strong>說明：</strong>以上選項會額外加入原本的「RS強勢組 vs RS弱勢組」配對中
+                </small>
+            </div>
+            
+            <button type="button" class="btn btn-warning mt-2" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
         </div>
 
         <div class="mb-3">
@@ -102,6 +152,12 @@
 
     <script>
         let result = '';
+
+        // 控制自訂配對選項的顯示/隱藏
+        document.getElementById('enableCustomPairing').addEventListener('change', function() {
+            const options = document.getElementById('customPairingOptions');
+            options.style.display = this.checked ? 'block' : 'none';
+        });
 
         function handleSymbolFormat(symbol) {
             symbol = symbol.trim().toUpperCase();
@@ -281,7 +337,7 @@
 
                 let pairs = [];
 
-                // 強勢 vs 弱勢配對
+                // 基本配對：RS強勢組 vs RS弱勢組
                 strongSymbols.forEach(strong => {
                     weakSymbols.forEach(weak => {
                         if (strong !== weak) {
@@ -289,6 +345,57 @@
                         }
                     });
                 });
+
+                // 檢查是否啟用自訂標的配對
+                if (document.getElementById('enableCustomPairing').checked) {
+                    const leftInput = document.getElementById('leftInput').value;
+                    const customSymbols = splitInput(leftInput).map(symbol => handleSymbolFormat(symbol));
+
+                    if (customSymbols.length > 0) {
+                        // 選項A：自訂標的作為強勢組
+                        if (document.getElementById('customAsStrong').checked) {
+                            customSymbols.forEach(custom => {
+                                weakSymbols.forEach(weak => {
+                                    if (custom !== weak) {
+                                        pairs.push(`${custom}/${weak}`);
+                                    }
+                                });
+                            });
+                        }
+
+                        // 選項B：自訂標的作為弱勢組
+                        if (document.getElementById('customAsWeak').checked) {
+                            strongSymbols.forEach(strong => {
+                                customSymbols.forEach(custom => {
+                                    if (strong !== custom) {
+                                        pairs.push(`${strong}/${custom}`);
+                                    }
+                                });
+                            });
+                        }
+
+                        // 選項C：自訂標的同時作為強勢和弱勢
+                        if (document.getElementById('customAsBoth').checked) {
+                            // 自訂標的 vs RS弱勢組
+                            customSymbols.forEach(custom => {
+                                weakSymbols.forEach(weak => {
+                                    if (custom !== weak) {
+                                        pairs.push(`${custom}/${weak}`);
+                                    }
+                                });
+                            });
+                            
+                            // RS強勢組 vs 自訂標的
+                            strongSymbols.forEach(strong => {
+                                customSymbols.forEach(custom => {
+                                    if (strong !== custom) {
+                                        pairs.push(`${strong}/${custom}`);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                }
 
                 const sortedPairs = await sortPairsByPrice(pairs);
                 result = sortedPairs.join(',\n');
