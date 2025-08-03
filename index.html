@@ -45,13 +45,6 @@
             <h4>標準配對功能</h4>
             <div class="row">
                 <div class="col-md-6">
-                    <!-- 新增: 加入大幣 -->
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="addMajorCoins">
-                        <label class="form-check-label" for="addMajorCoins">
-                            加入大幣至配對組（左側欄位）
-                        </label>
-                    </div>
                     <div class="form-group">
                         <label for="leftInput">配對標的組 (左)</label>
                         <textarea class="form-control" id="leftInput" rows="5" 
@@ -66,15 +59,26 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="priceSort" checked>
-                <label class="form-check-label" for="priceSort">
-                    取得幣安市價並依照市價高低排列（市價高者在前）
-                </label>
-                <div class="loading" id="priceLoading">正在取得市價資料...</div>
+            <!-- 兩勾選框並排 -->
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="addMajorCoins">
+                        <label class="form-check-label" for="addMajorCoins">
+                            加入大幣至配對組（左側欄位）
+                        </label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="priceSort" checked>
+                        <label class="form-check-label" for="priceSort">
+                            取得幣安市價並依照市價高低排列（市價高者在前）
+                        </label>
+                    </div>
+                    <div class="loading" id="priceLoading" style="margin-left:25px;">正在取得市價資料...</div>
+                </div>
             </div>
-            
             <div class="mb-3">
                 <button type="button" class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
                 <button type="button" class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
@@ -155,7 +159,6 @@
         </div>
     </div>
 
-
     <script>
         let result = '';
 
@@ -164,14 +167,13 @@
             "BTC","ETH","ETC","ATOM","POL","ADA",
             "AVAX","DOT","BNB","SOL","XRP","LTC","DOGE"
         ];
-        // 勾選大幣時，直接填入（預設覆蓋現有內容，可依需求修改為追加）
+        // 勾選大幣時，直接填入（預設覆蓋現有內容）
         document.getElementById('addMajorCoins').addEventListener('change', function() {
             if (this.checked) {
                 document.getElementById('leftInput').value = majorCoins.join('\n');
             }
         });
 
-        // 控制自訂配對選項的顯示/隱藏
         document.getElementById('enableCustomPairing').addEventListener('change', function() {
             const options = document.getElementById('customPairingOptions');
             options.style.display = this.checked ? 'block' : 'none';
