@@ -127,215 +127,150 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-/* == 全域變數 == */
-let result = '', latestRsContent = '';
+let resultText = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
-const apiKey = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
+const apiKey     = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
-/* == UI 事件處理 == */
-document.getElementById('addMajorCoins').addEventListener('change', e => {
-  if (e.target.checked) document.getElementById('leftInput').value = majorCoins.join('\n');
+document.getElementById('addMajorCoins').addEventListener('change',e=>{
+  if(e.target.checked) document.getElementById('leftInput').value = majorCoins.join('\n');
 });
-document.getElementById('enableCustomPairing').addEventListener('change', e => {
+document.getElementById('enableCustomPairing').addEventListener('change',e=>{
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
 
-/* == 工具函式 == */
-function handleSymbolFormat(s){
+function fmt(s){
   s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
 }
-const splitInput = str => str.split(/[\s,]+/).filter(x => x.trim());
+const split = str => str.split(/[\s,]+/).filter(Boolean);
 
-async function getBinancePrices(symbols){
-  const apiSymbols = symbols.map(s => s.replace('BINANCE:','').replace('.P',''));
-  try{
-    const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
-    const d = await r.json();
-    const p = {};
-    d.forEach(i=>{ if(apiSymbols.includes(i.symbol)) p[i.symbol] = +i.price; });
-    return p;
-  }catch{ return {}; }
+async function priceMap(symbols){
+  const list = symbols.map(s=>s.replace('BINANCE:','').replace('.P',''));
+  const res  = await fetch('https://fapi.binance.com/fapi/v1/ticker/price').then(r=>r.json());
+  const map  = {};
+  res.forEach(i=>{ if(list.includes(i.symbol)) map[i.symbol]=+i.price; });
+  return map;
 }
-
-async function sortPairsByPrice(pairs){
-  if(!document.getElementById('priceSort').checked) return pairs;
+async function sortByPrice(arr){
+  if(!document.getElementById('priceSort').checked) return arr;
   document.getElementById('priceLoading').style.display='block';
   try{
-    const set = new Set();
-    pairs.forEach(p=>{
-      if(p.includes('/')){
-        const [l,r] = p.split('/');
-        set.add(l); set.add(r);
-      }
-    });
-    const price = await getBinancePrices([...set]);
-    return pairs.map(p=>{
+    const set=new Set();
+    arr.forEach(p=>{ if(p.includes('/')){const [l,r]=p.split('/');set.add(l);set.add(r);} });
+    const pm=await priceMap([...set]);
+    return arr.map(p=>{
       if(!p.includes('/')) return p;
-      const [l,r] = p.split('/'),
-            lp = price[l.replace('BINANCE:','').replace('.P','')]||0,
-            rp = price[r.replace('BINANCE:','').replace('.P','')]||0;
-      return lp >= rp ? `${l}/${r}` : `${r}/${l}`;
+      const [l,r]=p.split('/'),
+            lp=pm[l.replace('BINANCE:','').replace('.P','')]||0,
+            rp=pm[r.replace('BINANCE:','').replace('.P','')]||0;
+      return lp>=rp?`${l}/${r}`:`${r}/${l}`;
     });
   }finally{
     document.getElementById('priceLoading').style.display='none';
   }
 }
 
-/* == 標準配對 == */
 async function generateFullPairs(){
-  const left = splitInput(document.getElementById('leftInput').value),
-        right= splitInput(document.getElementById('rightInput').value),
-        all  = [...new Set([...left,...right])];
-  const pairs=[];
-  for(let i=0;i<all.length;i++)
-    for(let j=0;j<all.length;j++)
-      if(i!==j) pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value),
+        all=[...new Set([...left,...right])],
+        pairs=[];
+  for(let i=0;i<all.length;i++)for(let j=0;j<all.length;j++)if(i!==j)pairs.push(`${fmt(all[i])}/${fmt(all[j])}`);
+  resultText=(await sortByPrice(pairs)).join(',\n');
+  document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
-
 async function generateUniquePairs(){
-  const left = splitInput(document.getElementById('leftInput').value),
-        right= splitInput(document.getElementById('rightInput').value),
-        all  = [...new Set([...left,...right])];
-  const pairs=[];
-  for(let i=0;i<all.length;i++)
-    for(let j=i+1;j<all.length;j++)
-      pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value),
+        all=[...new Set([...left,...right])],
+        pairs=[];
+  for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)pairs.push(`${fmt(all[i])}/${fmt(all[j])}`);
+  resultText=(await sortByPrice(pairs)).join(',\n');
+  document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
-
 async function generateOneWayPairs(){
-  const left = splitInput(document.getElementById('leftInput').value),
-        right= splitInput(document.getElementById('rightInput').value);
-  const pairs=[];
-  left.forEach(l=> right.forEach(r=>{
-    const lf = handleSymbolFormat(l), rf = handleSymbolFormat(r);
-    if(lf!==rf) pairs.push(`${lf}/${rf}`);
-  }));
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value),
+        pairs=[];
+  left.forEach(l=>right.forEach(r=>{const lf=fmt(l),rf=fmt(r);if(lf!==rf)pairs.push(`${lf}/${rf}`);}));
+  resultText=(await sortByPrice(pairs)).join(',\n');
+  document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 
-/* == RS 清單配對 == */
 async function generateRSPairs(){
-  let text='';
-  const fileInput=document.getElementById('rsFile');
-  if(fileInput.files.length>0){
-    text = await fileInput.files[0].text();
-  }else if(latestRsContent){
-    text = latestRsContent;
-  }else{
-    alert('請先上傳 RS 清單或使用自動讀取！');
-    return;
-  }
+  let txt='';
+  const file=document.getElementById('rsFile');
+  if(file.files.length>0)      txt=await file.files[0].text();
+  else if(latestRsContent)     txt=latestRsContent;
+  else { alert('請先上傳 RS 清單或使用自動讀取！'); return; }
 
-  const strongCnt = parseInt(document.getElementById('strongCount').value)||0,
-        weakCnt   = parseInt(document.getElementById('weakCount').value)||0;
+  const strongCnt=parseInt(document.getElementById('strongCount').value)||0,
+        weakCnt  =parseInt(document.getElementById('weakCount').value)||0,
+        lines    =txt.split('\n').map(l=>l.trim()).filter(l=>l && !l.includes('BINANCE:BTCDOMUSDT.P')),
+        hasCus   =document.getElementById('enableCustomPairing').checked;
 
-  const lines = text.split('\n').map(l=>l.trim())
-                    .filter(l=>l && !l.includes('BINANCE:BTCDOMUSDT.P'));
+  if(!hasCus && (strongCnt===0 || weakCnt===0)){ alert('錯誤：使用純 RS 清單時，強弱組數都必須大於 0'); return; }
+  if( hasCus && (strongCnt===0 && weakCnt===0)){ alert('錯誤：強弱組數不可同時為 0'); return; }
 
-  const hasCustom = document.getElementById('enableCustomPairing').checked;
+  const strong=strongCnt?lines.slice(0,strongCnt).map(fmt):[],
+        weak  =weakCnt? lines.slice(-weakCnt).map(fmt):[],
+        block={A:[],B:[],C:[]};
 
-  if(!hasCustom){
-    if(strongCnt===0 || weakCnt===0){
-      alert('錯誤：使用純 RS 清單時，強弱組數都必須大於 0');
-      return;
-    }
-  }else{
-    if(strongCnt===0 && weakCnt===0){
-      alert('錯誤：強弱組數不可同時為 0');
-      return;
-    }
-  }
+  if(strong.length&&weak.length)strong.forEach(s=>weak.forEach(w=>{if(s!==w)block.A.push(`${s}/${w}`);})); 
 
-  const strongSyms = strongCnt>0 ? lines.slice(0,strongCnt).map(handleSymbolFormat):[],
-        weakSyms   = weakCnt  >0 ? lines.slice(-weakCnt).map(handleSymbolFormat):[];
-
-  const blocks={A:[],B:[],C:[]};
-  if(strongSyms.length && weakSyms.length){
-    strongSyms.forEach(s=> weakSyms.forEach(w=>{ if(s!==w) blocks.A.push(`${s}/${w}`); }));
-  }
-
-  if(hasCustom){
-    const custom=[...new Set(splitInput(document.getElementById('leftInput').value).map(handleSymbolFormat))];
-    if(document.getElementById('customAsStrong').checked && weakSyms.length){
-      custom.forEach(c=> weakSyms.forEach(w=>{ if(c!==w) blocks.B.push(`${c}/${w}`); }));
-    }
-    if(document.getElementById('customAsWeak').checked && strongSyms.length){
-      strongSyms.forEach(s=> custom.forEach(c=>{ if(s!==c) blocks.C.push(`${s}/${c}`); }));
-    }
+  if(hasCus){
+    const cus=[...new Set(split(document.getElementById('leftInput').value).map(fmt))];
+    if(document.getElementById('customAsStrong').checked&&weak.length)
+      cus.forEach(c=>weak.forEach(w=>{if(c!==w)block.B.push(`${c}/${w}`);})); 
+    if(document.getElementById('customAsWeak').checked&&strong.length)
+      strong.forEach(s=>cus.forEach(c=>{if(s!==c)block.C.push(`${s}/${c}`);})); 
     if(document.getElementById('customAsBoth').checked){
-      if(weakSyms.length){
-        custom.forEach(c=> weakSyms.forEach(w=>{ if(c!==w) blocks.B.push(`${c}/${w}`); }));
-      }
-      if(strongSyms.length){
-        strongSyms.forEach(s=> custom.forEach(c=>{ if(s!==c) blocks.C.push(`${s}/${c}`); }));
-      }
+      if(weak.length)  cus.forEach(c=>weak.forEach(w=>{if(c!==w)block.B.push(`${c}/${w}`);})); 
+      if(strong.length)strong.forEach(s=>cus.forEach(c=>{if(s!==c)block.C.push(`${s}/${c}`);})); 
     }
   }
-
   let out=[];
-  if(blocks.A.length) out.push('###RS強勢對弱勢',...blocks.A);
-  if(blocks.B.length) out.push('###自訂對弱勢',...blocks.B);
-  if(blocks.C.length) out.push('###自訂對強勢',...blocks.C);
+  if(block.A.length)out.push('###RS強勢對弱勢',...block.A);
+  if(block.B.length)out.push('###自訂對弱勢',...block.B);
+  if(block.C.length)out.push('###自訂對強勢',...block.C);
 
-  result = (await sortPairsByPrice(out)).join(',\n');
-  document.getElementById('result').value = result;
+  resultText=(await sortByPrice(out)).join(',\n');
+  document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 
-/* == 雲端硬碟自動讀取 == */
 document.getElementById('autoFetchRsBtn').addEventListener('click',async()=>{
   const load=document.getElementById('autoFetchLoading');
   load.style.display='inline';
   try{
     const url=`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${apiKey}`;
-    const res=await fetch(url);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    latestRsContent=await res.text();
-    result = latestRsContent;
-    document.getElementById('result').value = result;
+    const rsp=await fetch(url);
+    if(!rsp.ok)throw new Error('HTTP '+rsp.status);
+    latestRsContent=await rsp.text();
+    resultText=latestRsContent;
+    document.getElementById('result').value=resultText;
     document.getElementById('uploadToTradingView').style.display='inline-block';
     alert('✅ 讀取成功！');
-  }catch(e){
-    alert('❌ 讀取失敗: '+e.message);
-  }finally{
-    load.style.display='none';
-  }
+  }catch(e){ alert('❌ 讀取失敗: '+e.message); }
+  finally{ load.style.display='none'; }
 });
 
-/* == 下載結果 == */
 function downloadResult(){
-  if(!result){
-    alert('請先產生配對再下載！');
-    return;
-  }
+  if(!resultText){ alert('請先產生配對再下載！'); return; }
   const d=new Date(),
-        ts=d.getFullYear()+
-           ('0'+(d.getMonth()+1)).slice(-2)+
-           ('0'+d.getDate()).slice(-2)+
-           ('0'+d.getHours()).slice(-2)+
-           ('0'+d.getMinutes()).slice(-2);
-  const blob=new Blob([result],{type:'text/plain'}),
-        url =URL.createObjectURL(blob),
-        a   =document.createElement('a');
-  a.href=url;
-  a.download=`LS_Pairs_${ts}.txt`;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+        ts=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2);
+  const blob=new Blob([resultText],{type:'text/plain'}),
+        link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download=`LS_Pairs_${ts}.txt`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
-/* == 匯入 TradingView == */
 function inTG(){ return window.Telegram && Telegram.WebApp; }
 
 function uploadToTradingView(){
@@ -343,29 +278,22 @@ function uploadToTradingView(){
   if(!txt){ alert('請先產生或貼上配對結果'); return; }
 
   if(inTG()){
-    const d=new Date();
-    const listName=`Pairs_${d.getFullYear()}${('0'+(d.getMonth()+1)).slice(-2)}${('0'+d.getDate()).slice(-2)}_${('0'+d.getHours()).slice(-2)}${('0'+d.getMinutes()).slice(-2)}`;
-    Telegram.WebApp.sendData(JSON.stringify({
-      action:'upload_to_tradingview',
-      symbols:txt,
-      listName:listName
-    }));
-    // Telegram.WebApp.close(); // 如需自動關閉可取消註解
+    const d=new Date(),
+          name=`Pairs_${d.getFullYear()}${('0'+(d.getMonth()+1)).slice(-2)}${('0'+d.getDate()).slice(-2)}_${('0'+d.getHours()).slice(-2)}${('0'+d.getMinutes()).slice(-2)}`;
+    Telegram.WebApp.sendData(JSON.stringify({action:'upload_to_tradingview',symbols:txt,listName:name}));
   }else{
-    localStorage.setItem('tv-chart-temporary-clipboard',txt);
+    try{
+      localStorage.setItem('tv-chart-temporary-clipboard',txt);
+    }catch(e){}
     window.open('https://www.tradingview.com/chart/','_blank');
   }
 }
 </script>
 
-<!-- Telegram Web-App SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  if(inTG()){
-    Telegram.WebApp.ready();
-    document.getElementById('uploadToTradingView').style.display='inline-block';
-  }
+  if(inTG()){ Telegram.WebApp.ready(); document.getElementById('uploadToTradingView').style.display='inline-block'; }
 });
 </script>
 </body>
