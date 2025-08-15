@@ -124,12 +124,13 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
+/* ===== 全域 ===== */
 let resultText='', latestRsContent='';
 const majorCoins=['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId='1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
 const apiKey='AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
-/* UI */
+/* ===== UI ===== */
 document.getElementById('addMajorCoins').addEventListener('change',e=>{
   if(e.target.checked) document.getElementById('leftInput').value=majorCoins.join('\n');
 });
@@ -137,11 +138,11 @@ document.getElementById('enableCustomPairing').addEventListener('change',e=>{
   document.getElementById('customPairingOptions').style.display=e.target.checked?'block':'none';
 });
 
-/* 工具 */
+/* ===== 工具函式 ===== */
 function fmt(s){ s=s.trim().toUpperCase().replace('USDC.P','USDT.P'); return /^BINANCE:/.test(s)?s:`BINANCE:${s}USDT.P`; }
 const split=str=>str.split(/[\s,]+/).filter(Boolean);
 
-/* 價格排序 */
+/* ===== 價格排序 ===== */
 async function priceMap(symbols){
   const list=symbols.map(s=>s.replace('BINANCE:','').replace('.P',''));
   const data=await fetch('https://fapi.binance.com/fapi/v1/ticker/price').then(r=>r.json());
@@ -157,15 +158,18 @@ async function sortByPrice(arr){
     const pm=await priceMap([...set]);
     return arr.map(p=>{
       if(!p.includes('/')) return p;
-      const [l,r]=p.split('/'), lp=pm[l.replace('BINANCE:','').replace('.P','')]||0, rp=pm[r.replace('BINANCE:','').replace('.P','')]||0;
+      const [l,r]=p.split('/'),
+            lp=pm[l.replace('BINANCE:','').replace('.P','')]||0,
+            rp=pm[r.replace('BINANCE:','').replace('.P','')]||0;
       return lp>=rp?`${l}/${r}`:`${r}/${l}`;
     });
   }finally{ document.getElementById('priceLoading').style.display='none'; }
 }
 
-/* 產生配對 */
+/* ===== 標準配對 ===== */
 async function generateFullPairs(){
-  const left=split(document.getElementById('leftInput').value), right=split(document.getElementById('rightInput').value),
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value),
         all=[...new Set([...left,...right])], pairs=[];
   for(let i=0;i<all.length;i++)for(let j=0;j<all.length;j++)if(i!==j)pairs.push(`${fmt(all[i])}/${fmt(all[j])}`);
   resultText=(await sortByPrice(pairs)).join(',\n');
@@ -173,7 +177,8 @@ async function generateFullPairs(){
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 async function generateUniquePairs(){
-  const left=split(document.getElementById('leftInput').value), right=split(document.getElementById('rightInput').value),
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value),
         all=[...new Set([...left,...right])], pairs=[];
   for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)pairs.push(`${fmt(all[i])}/${fmt(all[j])}`);
   resultText=(await sortByPrice(pairs)).join(',\n');
@@ -181,49 +186,63 @@ async function generateUniquePairs(){
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 async function generateOneWayPairs(){
-  const left=split(document.getElementById('leftInput').value), right=split(document.getElementById('rightInput').value), pairs=[];
+  const left=split(document.getElementById('leftInput').value),
+        right=split(document.getElementById('rightInput').value), pairs=[];
   left.forEach(l=>right.forEach(r=>{const lf=fmt(l), rf=fmt(r); if(lf!==rf)pairs.push(`${lf}/${rf}`);}));
   resultText=(await sortByPrice(pairs)).join(',\n');
   document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 
-/* RS 配對 */
+/* ===== RS 配對 ===== */
 async function generateRSPairs(){
-  let txt='', f=document.getElementById('rsFile');
+  let txt='';
+  const f=document.getElementById('rsFile');
   if(f.files.length) txt=await f.files[0].text(); else if(latestRsContent) txt=latestRsContent; else{ alert('請先上傳 RS 清單或使用自動讀取！'); return; }
-  const strongCnt=+document.getElementById('strongCount').value||0, weakCnt=+document.getElementById('weakCount').value||0,
-        lines=txt.split('\n').map(x=>x.trim()).filter(x=>x&&!x.includes('BTCDOMUSDT.P')), hasCus=document.getElementById('enableCustomPairing').checked;
-  if(!hasCus && (!strongCnt||!weakCnt)){ alert('強弱組數必須大於 0'); return; }
-  if(hasCus && (!strongCnt&& !weakCnt)){ alert('強弱組數不可同時為 0'); return; }
-  const strong=strongCnt?lines.slice(0,strongCnt).map(fmt):[], weak=weakCnt?lines.slice(-weakCnt).map(fmt):[], block={A:[],B:[],C:[]};
+
+  const strongCnt=parseInt(document.getElementById('strongCount').value)||0,
+        weakCnt  =parseInt(document.getElementById('weakCount').value)||0,
+        lines=txt.split('\n').map(x=>x.trim()).filter(x=>x && !x.includes('BTCDOMUSDT.P')),
+        hasCus=document.getElementById('enableCustomPairing').checked;
+
+  if(!hasCus && (strongCnt===0 || weakCnt===0)){ alert('強弱組數必須大於 0'); return; }
+  if( hasCus && (strongCnt===0 && weakCnt===0)){ alert('強弱組數不可同時為 0'); return; }
+
+  const strong=strongCnt?lines.slice(0,strongCnt).map(fmt):[],
+        weak  =weakCnt ?lines.slice(-weakCnt).map(fmt):[],
+        block={A:[],B:[],C:[]};
+
   if(strong.length&&weak.length) strong.forEach(s=>weak.forEach(w=>{ if(s!==w) block.A.push(`${s}/${w}`); }));
+
   if(hasCus){
     const cus=[...new Set(split(document.getElementById('leftInput').value).map(fmt))];
-    if(document.getElementById('customAsStrong').checked&&weak.length) cus.forEach(c=>weak.forEach(w=>{ if(c!==w) block.B.push(`${c}/${w}`); }));
-    if(document.getElementById('customAsWeak').checked&&strong.length) strong.forEach(s=>cus.forEach(c=>{ if(s!==c) block.C.push(`${s}/${c}`); }));
+    if(document.getElementById('customAsStrong').checked&&weak.length)
+      cus.forEach(c=>weak.forEach(w=>{ if(c!==w) block.B.push(`${c}/${w}`); }));
+    if(document.getElementById('customAsWeak').checked&&strong.length)
+      strong.forEach(s=>cus.forEach(c=>{ if(s!==c) block.C.push(`${s}/${c}`); }));
     if(document.getElementById('customAsBoth').checked){
       if(weak.length)   cus.forEach(c=>weak.forEach(w=>{ if(c!==w) block.B.push(`${c}/${w}`); }));
       if(strong.length) strong.forEach(s=>cus.forEach(c=>{ if(s!==c) block.C.push(`${s}/${c}`); }));
     }
   }
+
   let out=[]; if(block.A.length)out.push('###RS強勢對弱勢',...block.A); if(block.B.length)out.push('###自訂對弱勢',...block.B); if(block.C.length)out.push('###自訂對強勢',...block.C);
   resultText=(await sortByPrice(out)).join(',\n');
   document.getElementById('result').value=resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
 }
 
-/* 不進行配對 */
+/* ===== 不進行配對 ===== */
 function noPair(){
   if(!latestRsContent.trim()){ alert('尚未讀取 RS 清單'); return; }
   resultText = latestRsContent.trim();
   localStorage.setItem('tv-chart-temporary-clipboard', resultText);
-  navigator.clipboard?.writeText(resultText).catch(()=>{});
   document.getElementById('result').value = resultText;
   document.getElementById('uploadToTradingView').style.display='inline-block';
+  uploadToTradingView(); /* 直接開 TradingView */
 }
 
-/* 讀取最新 RS */
+/* ===== 讀取最新 RS ===== */
 document.getElementById('autoFetchRsBtn').addEventListener('click', async () => {
   const load=document.getElementById('autoFetchLoading'); load.style.display='inline';
   try{
@@ -231,12 +250,12 @@ document.getElementById('autoFetchRsBtn').addEventListener('click', async () => 
     const rsp=await fetch(url); if(!rsp.ok) throw new Error('HTTP '+rsp.status);
     latestRsContent=await rsp.text();
     document.getElementById('noPairBtn').style.display='inline-block';
-    alert('✅ 讀取成功，可直接按「不進行配對」或其他配對按鈕');
+    alert('✅ 已讀取 RS 清單，可直接按「不進行配對」或其他配對按鈕');
   }catch(e){ alert('讀取失敗: '+e.message); }
   finally{ load.style.display='none'; }
 });
 
-/* 下載 */
+/* ===== 下載 ===== */
 function downloadResult(){
   if(!resultText){ alert('沒有內容可下載'); return; }
   const d=new Date(), ts=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2);
@@ -244,13 +263,12 @@ function downloadResult(){
   link.href=URL.createObjectURL(blob); link.download=`LS_Pairs_${ts}.txt`; link.click(); URL.revokeObjectURL(link.href);
 }
 
-/* 匯入 TradingView */
+/* ===== 匯入 TradingView ===== */
 function uploadToTradingView(){
   const txt=document.getElementById('result').value.trim();
   if(!txt){ alert('沒有內容可匯入'); return; }
   try{ localStorage.setItem('tv-chart-temporary-clipboard', txt); }catch(e){}
-  navigator.clipboard?.writeText(txt).catch(()=>{});
-  alert('已複製，可在 TradingView 按 Ctrl+V / ⌘+V 快速匯入');
+  window.open('https://www.tradingview.com/chart/','_blank');
 }
 </script>
 </body>
