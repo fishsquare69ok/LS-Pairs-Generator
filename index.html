@@ -327,31 +327,27 @@ function downloadResult() {
 <script>
 (function () {
   const inTG = () => window.Telegram && Telegram.WebApp;
-
   document.addEventListener('DOMContentLoaded', () => {
     if (!inTG()) return;
     Telegram.WebApp.ready();
     document.getElementById('uploadToTradingView').style.display = 'inline-block';
   });
-
   window.uploadToTradingView = function () {
     if (!inTG()) { alert('此功能僅在 Telegram 內使用'); return; }
-
     const symbols = document.getElementById('result').value.trim();
     if (!symbols) { alert('請先產生或貼上配對結果'); return; }
-
     const d = new Date();
     const listName =
       `Pairs_${d.getFullYear()}${(d.getMonth()+1+'').padStart(2,'0')}` +
       `${(d.getDate()+'').padStart(2,'0')}_${(d.getHours()+'').padStart(2,'0')}` +
       `${(d.getMinutes()+'').padStart(2,'0')}`;
-
+    // --- 新增 log (這一行) ---
+    console.log("[WebApp] sendData", { action: 'upload_to_tradingview', symbols, listName });
     Telegram.WebApp.sendData(JSON.stringify({
       action : 'upload_to_tradingview',
       symbols: symbols,
       listName: listName
     }));
-
     // 若希望送出後直接關閉 Web-App，可取消註解下一行
     // Telegram.WebApp.close();
   };
