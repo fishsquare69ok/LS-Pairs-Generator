@@ -16,7 +16,7 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250818-0015)</small></h2>
+  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250818-0221)</small></h2>
   <!--───────── 標準配對 ─────────-->
   <div class="form-section">
     <h4>標準配對功能</h4>
@@ -129,6 +129,9 @@ const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
 const apiKey      = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
+// 新增: 全域儲存 params
+let pairsParams = {};
+
 // UI行為
 document.getElementById('addMajorCoins').addEventListener('change', e => {
   if (e.target.checked) leftInput.value = majorCoins.join('\n');
@@ -136,7 +139,6 @@ document.getElementById('addMajorCoins').addEventListener('change', e => {
 document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
-
 function handleSymbolFormat(s) {
   s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
@@ -175,7 +177,6 @@ async function sortPairsByPrice(pairs) {
     document.getElementById('priceLoading').style.display='none';
   }
 }
-
 // 標準配對
 async function generateFullPairs(){
   const left = splitInput(leftInput.value),
@@ -187,6 +188,9 @@ async function generateFullPairs(){
       if(i!==j)pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
   result=(await sortPairsByPrice(pairs)).join(',\n');
   resultArea.value=result;
+
+  // 新增: 收集 params
+  pairsParams = collectPairsParams('full');
 }
 async function generateUniquePairs(){
   const left = splitInput(leftInput.value),
@@ -198,6 +202,9 @@ async function generateUniquePairs(){
       pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
   result=(await sortPairsByPrice(pairs)).join(',\n');
   resultArea.value=result;
+
+  // 新增: 收集 params
+  pairsParams = collectPairsParams('unique');
 }
 async function generateOneWayPairs(){
   const left = splitInput(leftInput.value),
@@ -209,26 +216,24 @@ async function generateOneWayPairs(){
   }));
   result=(await sortPairsByPrice(pairs)).join(',\n');
   resultArea.value=result;
-}
 
+  // 新增: 收集 params
+  pairsParams = collectPairsParams('oneway');
+}
 // RS配對
 async function generateRSPairs() {
   let txt = '';
-  const f = rsFile.files[0];
-  if (f)                txt = await f.text();
+  const f = rsFile.files;
+  if (f.length) txt = await f.text();
   else if (latestRsContent) txt = latestRsContent;
   else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
-
   const strongN = +strongCount.value || 0,
         weakN   = +weakCount.value   || 0,
         lines   = txt.split('\n').map(l => l.trim()).filter(Boolean);
-
   const strong = strongN ? lines.slice(0,  strongN).map(handleSymbolFormat) : [],
         weak   = weakN   ? lines.slice(-weakN).map(handleSymbolFormat)     : [];
-
   const customEnabled = enableCustomPairing.checked;
   const customSyms    = customEnabled ? splitInput(leftInput.value).map(handleSymbolFormat) : [];
-
   const blocks = [];
   if (strong.length && weak.length) {
     const pairsA = [];
@@ -237,7 +242,7 @@ async function generateRSPairs() {
   }
   if (customEnabled) {
     const needB = customAsStrong.checked || customAsBoth.checked;
-    const needC = customAsWeak.checked   || customAsBoth.checked;
+    const needC = customAsWeak.checked || customAsBoth.checked;
     if (needB && weak.length) {
       const pairsB = [];
       customSyms.forEach(c => weak.forEach(w => { if (c !== w) pairsB.push(`${c}/${w}`); }));
@@ -249,7 +254,6 @@ async function generateRSPairs() {
       blocks.push({ label: '###自訂對強勢', pairs: pairsC });
     }
   }
-
   const outLines = [];
   for (const blk of blocks) {
     if (!blk.pairs.length) continue;
@@ -259,8 +263,10 @@ async function generateRSPairs() {
   }
   result = outLines.join(',\n');
   resultArea.value = result;
-}
 
+  // 新增: 收集 params
+  pairsParams = collectPairsParams('rs');
+}
 // 雲端硬碟讀取
 autoFetchRsBtn.addEventListener('click',async()=>{
   autoFetchLoading.style.display='inline';
@@ -274,7 +280,6 @@ autoFetchRsBtn.addEventListener('click',async()=>{
   }catch(e){alert('❌ 讀取失敗: '+e.message);}
   finally{autoFetchLoading.style.display='none';}
 });
-
 // 下載結果
 function downloadResult(){
   if(!result){alert('請先產生配對再下載');return;}
@@ -288,6 +293,30 @@ function downloadResult(){
   a.href=url;a.download=`LS_Pairs_${ts}.txt`;document.body.append(a);a.click();a.remove();
   URL.revokeObjectURL(url);
 }
+
+// 新增: 收集 params 函數
+function collectPairsParams(mode) {
+  return {
+    mode: mode,  // 'full' / 'unique' / 'oneway' / 'rs'
+    left: splitInput(leftInput.value),  // 陣列 e.g. ["AIOT", "CTSI", "EPIC"]
+    right: splitInput(rightInput.value), // 陣列 e.g. ["BAN", "BAT", "MEME"]
+    addMajor: document.getElementById('addMajorCoins').checked,
+    priceSort: document.getElementById('priceSort').checked,
+    strongCount: +document.getElementById('strongCount').value || 0,
+    weakCount: +document.getElementById('weakCount').value || 0,
+    customOption: getCustomOption(),
+    useRS: (mode === 'rs')  // RS 模式自動 true
+  };
+}
+
+// 新增: 取得 customOption
+function getCustomOption() {
+  if (!document.getElementById('enableCustomPairing').checked) return null;
+  if (document.getElementById('customAsBoth').checked) return 'C';
+  if (document.getElementById('customAsStrong').checked) return 'A';
+  if (document.getElementById('customAsWeak').checked) return 'B';
+  return 'C';  // 預設
+}
 </script>
 <!--───────────── Telegram Web-App────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -298,72 +327,32 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadToTradingView').style.display = 'inline-block';
   }
 });
-
-async function uploadToDrive(content, fileName) {
-  const boundary = '-------' + Date.now();
-  const metadata = { name: fileName, parents: ['1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v'] };
-  const form = `--${boundary}\nContent-Type: application/json\n\n${JSON.stringify(metadata)}\n--${boundary}\nContent-Type: text/plain\n\n${content}\n--${boundary}--`;
-  try {
-    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=' + apiKey, {
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body: form
-    });
-    if (!res.ok) {
-      console.error('Upload failed:', res.status);
-      return null;
-    }
-    const data = await res.json();
-    const fileId = data.id;
-
-    // 設定為公開
-    const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'reader', type: 'anyone' })
-    });
-    if (!permRes.ok) {
-      console.error('Permission set failed:', permRes.status);
-      return null;
-    }
-    return fileId;
-  } catch (e) {
-    console.error('uploadToDrive error:', e);
-    return null;
-  }
-}
-
+// 只發一包資料（無分段）
 async function uploadToTradingView() {
   if (!(window.Telegram && Telegram.WebApp)) {
     alert('請在 Telegram 內使用');
     return;
   }
-  const symbols = resultArea.value.trim();
-  if (!symbols) {
-    alert('請先產生或貼上配對結果');
-    return;
-  }
-  if (symbols.length > 3900) {
-    alert('⚠️ 您的清單過大（超過4000字），Telegram官方無法直接匯入。請縮減清單或分批處理，或直接下載txt傳Bot。');
+  if (!pairsParams.mode) {
+    alert('請先產生配對結果');
     return;
   }
   const d = new Date();
-  const listName = `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
-                   `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
-                   `${String(d.getMinutes()).padStart(2, '0')}`;
-  const fileName = `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
-                   `${String(d.getDate()).padStart(2, '0')}${String(d.getHours()).padStart(2, '0')}` +
-                   `${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}.txt`;
-  const fileId = await uploadToDrive(symbols, fileName);
-  if (fileId) {
-    Telegram.WebApp.sendData(JSON.stringify({ action: 'process_drive_file', fileId: fileId, listName: listName }));
-    setTimeout(async () => {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}`, { method: 'DELETE' });
-    }, 10000);
-  } else {
-    alert('上傳到 Drive 失敗，請檢查網路或 API Key');
-  }
+  const listName =
+    `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
+    `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
+    `${String(d.getMinutes()).padStart(2, '0')}`;
+  // 一次包所有資訊，Bot只需一次接收即可
+  Telegram.WebApp.sendData(
+    JSON.stringify({
+      action: 'generate_and_upload',
+      listName,
+      params: pairsParams
+    })
+  );
+  alert('請求已送出，後端處理中...');
 }
 </script>
+
 </body>
 </html>
