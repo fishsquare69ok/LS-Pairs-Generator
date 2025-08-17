@@ -16,7 +16,7 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250817-2248)</small></h2>
+  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250818-0015)</small></h2>
   <!--───────── 標準配對 ─────────-->
   <div class="form-section">
     <h4>標準配對功能</h4>
@@ -136,7 +136,158 @@ document.getElementById('addMajorCoins').addEventListener('change', e => {
 document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
-// ... (以下是原有的 handleSymbolFormat、splitInput、getBinancePrices、sortPairsByPrice、generateFullPairs、generateUniquePairs、generateOneWayPairs、generateRSPairs、autoFetchRsBtn、downloadResult 函數，無變動，略過以節省空間)
+
+function handleSymbolFormat(s) {
+  s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
+  return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
+}
+const splitInput = str => str.split(/[\s,]+/).filter(x => x.trim());
+async function getBinancePrices(symbolArr) {
+  try {
+    const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
+    const data= await res.json();
+    const apiSyms = symbolArr.map(s=>s.replace('BINANCE:','').replace('.P',''));
+    const map={};
+    data.forEach(i=>{if(apiSyms.includes(i.symbol)) map[i.symbol]=+i.price;});
+    return map;
+  } catch { return {}; }
+}
+async function sortPairsByPrice(pairs) {
+  if (!document.getElementById('priceSort').checked) return pairs;
+  document.getElementById('priceLoading').style.display='inline';
+  try{
+    const s = new Set();
+    pairs.forEach(p=>{
+      if(p.includes('/')){
+        const [l,r]=p.split('/');
+        s.add(l);s.add(r);
+      }
+    });
+    const prices = await getBinancePrices([...s]);
+    return pairs.map(p=>{
+      if(!p.includes('/')) return p;
+      const [l,r]=p.split('/');
+      const lp = prices[l.replace('BINANCE:','').replace('.P','')]||0;
+      const rp = prices[r.replace('BINANCE:','').replace('.P','')]||0;
+      return lp>=rp ? `${l}/${r}`:`${r}/${l}`;
+    });
+  } finally {
+    document.getElementById('priceLoading').style.display='none';
+  }
+}
+
+// 標準配對
+async function generateFullPairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value),
+        all  = [...new Set([...left,...right])];
+  const pairs=[];
+  for(let i=0;i<all.length;i++)
+    for(let j=0;j<all.length;j++)
+      if(i!==j)pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
+}
+async function generateUniquePairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value),
+        all  = [...new Set([...left,...right])];
+  const pairs=[];
+  for(let i=0;i<all.length;i++)
+    for(let j=i+1;j<all.length;j++)
+      pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
+}
+async function generateOneWayPairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value);
+  const pairs=[];
+  left.forEach(l=>right.forEach(r=>{
+    const lf=handleSymbolFormat(l),rf=handleSymbolFormat(r);
+    if(lf!==rf)pairs.push(`${lf}/${rf}`);
+  }));
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
+}
+
+// RS配對
+async function generateRSPairs() {
+  let txt = '';
+  const f = rsFile.files[0];
+  if (f)                txt = await f.text();
+  else if (latestRsContent) txt = latestRsContent;
+  else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
+
+  const strongN = +strongCount.value || 0,
+        weakN   = +weakCount.value   || 0,
+        lines   = txt.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const strong = strongN ? lines.slice(0,  strongN).map(handleSymbolFormat) : [],
+        weak   = weakN   ? lines.slice(-weakN).map(handleSymbolFormat)     : [];
+
+  const customEnabled = enableCustomPairing.checked;
+  const customSyms    = customEnabled ? splitInput(leftInput.value).map(handleSymbolFormat) : [];
+
+  const blocks = [];
+  if (strong.length && weak.length) {
+    const pairsA = [];
+    strong.forEach(s => weak.forEach(w => { if (s !== w) pairsA.push(`${s}/${w}`); }));
+    blocks.push({ label: '###RS強勢對弱勢', pairs: pairsA });
+  }
+  if (customEnabled) {
+    const needB = customAsStrong.checked || customAsBoth.checked;
+    const needC = customAsWeak.checked   || customAsBoth.checked;
+    if (needB && weak.length) {
+      const pairsB = [];
+      customSyms.forEach(c => weak.forEach(w => { if (c !== w) pairsB.push(`${c}/${w}`); }));
+      blocks.push({ label: '###自訂對弱勢', pairs: pairsB });
+    }
+    if (needC && strong.length) {
+      const pairsC = [];
+      strong.forEach(s => customSyms.forEach(c => { if (s !== c) pairsC.push(`${s}/${c}`); }));
+      blocks.push({ label: '###自訂對強勢', pairs: pairsC });
+    }
+  }
+
+  const outLines = [];
+  for (const blk of blocks) {
+    if (!blk.pairs.length) continue;
+    outLines.push(blk.label);
+    const sorted = await sortPairsByPrice(blk.pairs);
+    outLines.push(...sorted);
+  }
+  result = outLines.join(',\n');
+  resultArea.value = result;
+}
+
+// 雲端硬碟讀取
+autoFetchRsBtn.addEventListener('click',async()=>{
+  autoFetchLoading.style.display='inline';
+  try{
+    const url=`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${apiKey}`;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    latestRsContent=await res.text();
+    resultArea.value=latestRsContent;
+    alert('✅ 讀取成功');
+  }catch(e){alert('❌ 讀取失敗: '+e.message);}
+  finally{autoFetchLoading.style.display='none';}
+});
+
+// 下載結果
+function downloadResult(){
+  if(!result){alert('請先產生配對再下載');return;}
+  const d=new Date();
+  const ts=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+
+           String(d.getDate()).padStart(2,'0')+String(d.getHours()).padStart(2,'0')+
+           String(d.getMinutes()).padStart(2,'0');
+  const blob=new Blob([result],{type:'text/plain'});
+  const url =URL.createObjectURL(blob);
+  const a   =document.createElement('a');
+  a.href=url;a.download=`LS_Pairs_${ts}.txt`;document.body.append(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+}
 </script>
 <!--───────────── Telegram Web-App────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -152,24 +303,34 @@ async function uploadToDrive(content, fileName) {
   const boundary = '-------' + Date.now();
   const metadata = { name: fileName, parents: ['1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v'] };
   const form = `--${boundary}\nContent-Type: application/json\n\n${JSON.stringify(metadata)}\n--${boundary}\nContent-Type: text/plain\n\n${content}\n--${boundary}--`;
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=' + apiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-    body: form
-  });
-  if (!res.ok) return; // 新增：基本檢查，避免崩潰
-  const data = await res.json();
-  const fileId = data.id;
+  try {
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=' + apiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: form
+    });
+    if (!res.ok) {
+      console.error('Upload failed:', res.status);
+      return null;
+    }
+    const data = await res.json();
+    const fileId = data.id;
 
-  // 設定為公開
-  const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: 'reader', type: 'anyone' })
-  });
-  if (!permRes.ok) return; // 新增：基本檢查
-
-  return fileId;
+    // 設定為公開
+    const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    if (!permRes.ok) {
+      console.error('Permission set failed:', permRes.status);
+      return null;
+    }
+    return fileId;
+  } catch (e) {
+    console.error('uploadToDrive error:', e);
+    return null;
+  }
 }
 
 async function uploadToTradingView() {
@@ -186,7 +347,7 @@ async function uploadToTradingView() {
     alert('⚠️ 您的清單過大（超過4000字），Telegram官方無法直接匯入。請縮減清單或分批處理，或直接下載txt傳Bot。');
     return;
   }
-  const d = new Date(); // 新增：確保 d 在這裡定義
+  const d = new Date();
   const listName = `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
                    `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
                    `${String(d.getMinutes()).padStart(2, '0')}`;
@@ -194,11 +355,13 @@ async function uploadToTradingView() {
                    `${String(d.getDate()).padStart(2, '0')}${String(d.getHours()).padStart(2, '0')}` +
                    `${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}.txt`;
   const fileId = await uploadToDrive(symbols, fileName);
-  if (fileId) { // 新增：檢查 fileId 是否成功取得
+  if (fileId) {
     Telegram.WebApp.sendData(JSON.stringify({ action: 'process_drive_file', fileId: fileId, listName: listName }));
     setTimeout(async () => {
       await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}`, { method: 'DELETE' });
     }, 10000);
+  } else {
+    alert('上傳到 Drive 失敗，請檢查網路或 API Key');
   }
 }
 </script>
