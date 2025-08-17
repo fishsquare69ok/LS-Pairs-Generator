@@ -117,12 +117,9 @@
 <!--───────────── 主功能 JavaScript ─────────────-->
 <script>
 /* ========= 全域變數 ========= */
-/* 先抓常用 DOM 物件 ── 沒有就會報錯 */
-var resultArea        = document.getElementById('result');
-var leftInput         = document.getElementById('leftInput');
-var rightInput        = document.getElementById('rightInput');
-var autoFetchRsBtn    = document.getElementById('autoFetchRsBtn');
-var autoFetchLoading  = document.getElementById('autoFetchLoading');
+var resultArea  = document.getElementById('result');
+var leftInput   = document.getElementById('leftInput');
+var rightInput  = document.getElementById('rightInput');
 let result = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
@@ -275,7 +272,6 @@ async function generateRSPairs() {
   result = outLines.join(',\n');
   resultArea.value = result;
 }
-</script>
 
 /* ========= 雲端硬碟讀取 ========= */
 autoFetchRsBtn.addEventListener('click',async()=>{
