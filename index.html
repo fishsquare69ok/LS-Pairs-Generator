@@ -100,6 +100,9 @@
   <!--───────── 生成結果 ─────────-->
   <button class="btn btn-secondary mr-2" onclick="downloadResult()">下載結果</button>
   <button id="uploadToTradingView" class="btn btn-success" style="display:none" onclick="uploadToTradingView()">匯入 TradingView</button>
+  <span id="importLimitNote" style="color:#dc3545;display:inline-block;margin-left:10px;font-size:13px;">
+    注意：內容超過4000字時，Telegram官方會阻擋資料，請簡化清單或分批匯入。
+  </span>
   <div class="form-group mt-3">
     <label for="result">生成結果</label>
     <textarea id="result" class="form-control result-area" rows="15" readonly></textarea>
@@ -107,7 +110,7 @@
 </div>
 <!--───────────── 主功能 JavaScript ─────────────-->
 <script>
-/\* === 先抓常用 DOM 物件（補齊所有變數） === \*/
+// === 先抓常用 DOM 物件 ===
 var resultArea        = document.getElementById('result');
 var leftInput         = document.getElementById('leftInput');
 var rightInput        = document.getElementById('rightInput');
@@ -121,13 +124,13 @@ var customAsStrong    = document.getElementById('customAsStrong');
 var customAsWeak      = document.getElementById('customAsWeak');
 var customAsBoth      = document.getElementById('customAsBoth');
 
-/\* === 全域變數 === \*/
+// === 全域變數 ===
 let result = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
 const apiKey      = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
-/\* === UI 行為 === \*/
+// === UI 行為 ===
 document.getElementById('addMajorCoins').addEventListener('change', e => {
   if (e.target.checked) leftInput.value = majorCoins.join('\n');
 });
@@ -135,7 +138,7 @@ document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
 
-/\* === 工具函式 === \*/
+// === 工具函式 ===
 function handleSymbolFormat(s) {
   s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
@@ -175,7 +178,7 @@ async function sortPairsByPrice(pairs) {
   }
 }
 
-/\* === 標準配對 === \*/
+// === 標準配對 ===
 async function generateFullPairs(){
   const left = splitInput(leftInput.value),
         right= splitInput(rightInput.value),
@@ -210,7 +213,7 @@ async function generateOneWayPairs(){
   resultArea.value=result;
 }
 
-/\* === RS 清單配對（含區塊標籤） === \*/
+// === RS 清單配對（含區塊標籤） ===
 async function generateRSPairs() {
   /* 讀取 RS 清單文字 -------------------- */
   let txt = '';
@@ -272,7 +275,7 @@ async function generateRSPairs() {
   resultArea.value = result;
 }
 
-/\* === 雲端硬碟讀取 === \*/
+// === 雲端硬碟讀取 ===
 autoFetchRsBtn.addEventListener('click',async()=>{
   autoFetchLoading.style.display='inline';
   try{
@@ -286,7 +289,7 @@ autoFetchRsBtn.addEventListener('click',async()=>{
   finally{autoFetchLoading.style.display='none';}
 });
 
-/\* === 下載結果 === \*/
+// === 下載結果 ===
 function downloadResult(){
   if(!result){alert('請先產生配對再下載');return;}
   const d=new Date();
@@ -300,11 +303,9 @@ function downloadResult(){
   URL.revokeObjectURL(url);
 }
 </script>
-
 <!--───────────── Telegram Web-App────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-/* = 讓按鈕只在 Telegram 內顯示 = */
 document.addEventListener('DOMContentLoaded', () => {
   if (window.Telegram && Telegram.WebApp) {
     Telegram.WebApp.ready();
@@ -312,16 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* = 字串切段工具 = */
-function chunkString(str, size = 3800) {
-  const out = [];
-  for (let i = 0; i < str.length; i += size) {
-    out.push(str.slice(i, i + size));
-  }
-  return out;
-}
-
-/* = 修改後的分段上傳函式 = */
+// ==== 單次送 bot，附檢查與警告 ====
 async function uploadToTradingView() {
   if (!(window.Telegram && Telegram.WebApp)) {
     alert('請在 Telegram 內使用');
@@ -332,40 +324,33 @@ async function uploadToTradingView() {
     alert('請先產生或貼上配對結果');
     return;
   }
+  if (symbols.length > 3900) {
+    alert('⚠️ 您的清單過大（超過4000字），Telegram官方無法直接匯入。請縮減清單或分批處理！');
+    return;
+  }
   const d = new Date();
   const listName =
     `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
     `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
     `${String(d.getMinutes()).padStart(2, '0')}`;
 
-  const chunks = chunkString(symbols);
-
-  // 1. 告知 Bot 總段數
+  // 直接送init和part（不分段）
   Telegram.WebApp.sendData(
     JSON.stringify({
       action: 'upload_to_tradingview_init',
-      parts: chunks.length,
+      parts: 1,
       listName,
     })
   );
-
-  // 2. 逐段送資料，送完一段後等待 200 毫秒
-  for (let i = 0; i < chunks.length; i++) {
-    console.log('send part', i + 1, 'len', chunks[i].length);
-    Telegram.WebApp.sendData(
-      JSON.stringify({
-        action: 'upload_to_tradingview_part',
-        idx: i + 1,
-        listName,
-        symbols: chunks[i],
-      })
-    );
-    await new Promise((r) => setTimeout(r, 200)); // 等 200 毫秒
-  }
+  Telegram.WebApp.sendData(
+    JSON.stringify({
+      action: 'upload_to_tradingview_part',
+      idx: 1,
+      listName,
+      symbols: symbols,
+    })
+  );
 }
 </script>
-
 </body>
 </html>
----
-</query>
