@@ -300,49 +300,71 @@ function downloadResult(){
   URL.revokeObjectURL(url);
 }
 </script>
-<!--───────────── Telegram Web-App 內核────────────-->
+
+<!--───────────── Telegram Web-App────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-/\* === 讓按鈕只在 Telegram 內顯示 === \*/
-document.addEventListener('DOMContentLoaded',()=>{
-  if(window.Telegram&&Telegram.WebApp){
+/* = 讓按鈕只在 Telegram 內顯示 = */
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.Telegram && Telegram.WebApp) {
     Telegram.WebApp.ready();
-    document.getElementById('uploadToTradingView').style.display='inline-block';
+    document.getElementById('uploadToTradingView').style.display = 'inline-block';
   }
 });
-/\* === 分段上傳 (避開 4 KB 限制) === \*/
-function chunkString(str,size=3800){
-  const out=[];
-  for(let i=0;i<str.length;i+=size) out.push(str.slice(i,i+size));
+
+/* = 字串切段工具 = */
+function chunkString(str, size = 3800) {
+  const out = [];
+  for (let i = 0; i < str.length; i += size) {
+    out.push(str.slice(i, i + size));
+  }
   return out;
 }
-function uploadToTradingView(){
-  if(!(window.Telegram&&Telegram.WebApp)){alert('請在 Telegram 內使用');return;}
-  const symbols=resultArea.value.trim();
-  if(!symbols){alert('請先產生或貼上配對結果');return;}
-  const d=new Date();
-  const listName=`Pairs_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}`+
-                 `${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}`+
-                 `${String(d.getMinutes()).padStart(2,'0')}`;
-  const chunks=chunkString(symbols);
-  /\* 1. 告知 Bot 總段數 \*/
-  Telegram.WebApp.sendData(JSON.stringify({
-    action:'upload_to_tradingview_init',
-    parts :chunks.length,
-    listName
-  }));
-  /\* 2. 逐段送資料 \*/
-  chunks.forEach((c,i)=>{
-    console.log('send part', i+1, 'len', c.length);    // ← 加這行
-    Telegram.WebApp.sendData(JSON.stringify({
-      action :'upload_to_tradingview_part',
-      idx    :i+1,
+
+/* = 修改後的分段上傳函式 = */
+async function uploadToTradingView() {
+  if (!(window.Telegram && Telegram.WebApp)) {
+    alert('請在 Telegram 內使用');
+    return;
+  }
+  const symbols = resultArea.value.trim();
+  if (!symbols) {
+    alert('請先產生或貼上配對結果');
+    return;
+  }
+  const d = new Date();
+  const listName =
+    `Pairs_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}` +
+    `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
+    `${String(d.getMinutes()).padStart(2, '0')}`;
+
+  const chunks = chunkString(symbols);
+
+  // 1. 告知 Bot 總段數
+  Telegram.WebApp.sendData(
+    JSON.stringify({
+      action: 'upload_to_tradingview_init',
+      parts: chunks.length,
       listName,
-      symbols:c
-    }));
-  });
+    })
+  );
+
+  // 2. 逐段送資料，送完一段後等待 200 毫秒
+  for (let i = 0; i < chunks.length; i++) {
+    console.log('send part', i + 1, 'len', chunks[i].length);
+    Telegram.WebApp.sendData(
+      JSON.stringify({
+        action: 'upload_to_tradingview_part',
+        idx: i + 1,
+        listName,
+        symbols: chunks[i],
+      })
+    );
+    await new Promise((r) => setTimeout(r, 200)); // 等 200 毫秒
+  }
 }
 </script>
+
 </body>
 </html>
 ---
