@@ -17,7 +17,6 @@
 <body>
 <div class="container">
   <h2 class="mb-4">交易對配對工具</h2>
-
   <!--───────── 標準配對 ─────────-->
   <div class="form-section">
     <h4>標準配對功能</h4>
@@ -35,7 +34,6 @@
         </div>
       </div>
     </div>
-
     <div class="row mb-3 align-items-center">
       <div class="col-auto">
         <div class="form-check">
@@ -51,12 +49,10 @@
         <span id="priceLoading" class="loading ml-3">正在取得市價資料...</span>
       </div>
     </div>
-
     <button class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
     <button class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
     <button class="btn btn-info" onclick="generateOneWayPairs()">單向配對</button>
   </div>
-
   <!--───────── RS + 自訂配對 ─────────-->
   <div class="form-section">
     <h4>RS 清單建立強弱組合</h4>
@@ -78,7 +74,6 @@
         <span id="autoFetchLoading" class="loading">讀取中...</span>
       </div>
     </div>
-
     <div class="form-check mb-2">
       <input type="checkbox" id="enableCustomPairing" class="form-check-input">
       <label class="form-check-label" for="enableCustomPairing"><strong>加入自訂標的配對</strong></label>
@@ -100,46 +95,52 @@
         <div class="option-description">自訂標的 vs RS弱勢組，且 RS強勢組 vs 自訂標的</div>
       </div>
     </div>
-
     <button class="btn btn-warning mt-2" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
   </div>
-
   <!--───────── 生成結果 ─────────-->
   <button class="btn btn-secondary mr-2" onclick="downloadResult()">下載結果</button>
   <button id="uploadToTradingView" class="btn btn-success" style="display:none" onclick="uploadToTradingView()">匯入 TradingView</button>
-
   <div class="form-group mt-3">
     <label for="result">生成結果</label>
     <textarea id="result" class="form-control result-area" rows="15" readonly></textarea>
   </div>
 </div>
-
 <!--───────────── 主功能 JavaScript ─────────────-->
 <script>
-/* ========= 全域變數 ========= */
-var resultArea  = document.getElementById('result');
-var leftInput   = document.getElementById('leftInput');
-var rightInput  = document.getElementById('rightInput');
+/\* === 先抓常用 DOM 物件（補齊所有變數） === \*/
+var resultArea        = document.getElementById('result');
+var leftInput         = document.getElementById('leftInput');
+var rightInput        = document.getElementById('rightInput');
+var autoFetchRsBtn    = document.getElementById('autoFetchRsBtn');
+var autoFetchLoading  = document.getElementById('autoFetchLoading');
+var strongCount       = document.getElementById('strongCount');
+var weakCount         = document.getElementById('weakCount');
+var rsFile            = document.getElementById('rsFile');
+var enableCustomPairing = document.getElementById('enableCustomPairing');
+var customAsStrong    = document.getElementById('customAsStrong');
+var customAsWeak      = document.getElementById('customAsWeak');
+var customAsBoth      = document.getElementById('customAsBoth');
+
+/\* === 全域變數 === \*/
 let result = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
 const apiKey      = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
-/* ========= UI 行為 ========= */
+/\* === UI 行為 === \*/
 document.getElementById('addMajorCoins').addEventListener('change', e => {
-  if (e.target.checked) document.getElementById('leftInput').value = majorCoins.join('\n');
+  if (e.target.checked) leftInput.value = majorCoins.join('\n');
 });
 document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
 
-/* ========= 工具函式 ========= */
+/\* === 工具函式 === \*/
 function handleSymbolFormat(s) {
   s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
 }
 const splitInput = str => str.split(/[\s,]+/).filter(x => x.trim());
-
 async function getBinancePrices(symbolArr) {
   try {
     const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
@@ -150,7 +151,6 @@ async function getBinancePrices(symbolArr) {
     return map;
   } catch { return {}; }
 }
-
 async function sortPairsByPrice(pairs) {
   if (!document.getElementById('priceSort').checked) return pairs;
   document.getElementById('priceLoading').style.display='inline';
@@ -175,7 +175,7 @@ async function sortPairsByPrice(pairs) {
   }
 }
 
-/* ========= 標準配對 ========= */
+/\* === 標準配對 === \*/
 async function generateFullPairs(){
   const left = splitInput(leftInput.value),
         right= splitInput(rightInput.value),
@@ -210,8 +210,7 @@ async function generateOneWayPairs(){
   resultArea.value=result;
 }
 
-<script>
-/* === RS 清單配對（含區塊標籤） === */
+/\* === RS 清單配對（含區塊標籤） === \*/
 async function generateRSPairs() {
   /* 讀取 RS 清單文字 -------------------- */
   let txt = '';
@@ -273,7 +272,7 @@ async function generateRSPairs() {
   resultArea.value = result;
 }
 
-/* ========= 雲端硬碟讀取 ========= */
+/\* === 雲端硬碟讀取 === \*/
 autoFetchRsBtn.addEventListener('click',async()=>{
   autoFetchLoading.style.display='inline';
   try{
@@ -287,7 +286,7 @@ autoFetchRsBtn.addEventListener('click',async()=>{
   finally{autoFetchLoading.style.display='none';}
 });
 
-/* ========= 下載結果 ========= */
+/\* === 下載結果 === \*/
 function downloadResult(){
   if(!result){alert('請先產生配對再下載');return;}
   const d=new Date();
@@ -301,45 +300,38 @@ function downloadResult(){
   URL.revokeObjectURL(url);
 }
 </script>
-
 <!--───────────── Telegram Web-App 內核────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-/* ========= 讓按鈕只在 Telegram 內顯示 ========= */
+/\* === 讓按鈕只在 Telegram 內顯示 === \*/
 document.addEventListener('DOMContentLoaded',()=>{
   if(window.Telegram&&Telegram.WebApp){
     Telegram.WebApp.ready();
     document.getElementById('uploadToTradingView').style.display='inline-block';
   }
 });
-
-/* ========= 分段上傳 (避開 4 KB 限制) ========= */
+/\* === 分段上傳 (避開 4 KB 限制) === \*/
 function chunkString(str,size=3800){
   const out=[];
   for(let i=0;i<str.length;i+=size) out.push(str.slice(i,i+size));
   return out;
 }
-
 function uploadToTradingView(){
   if(!(window.Telegram&&Telegram.WebApp)){alert('請在 Telegram 內使用');return;}
   const symbols=resultArea.value.trim();
   if(!symbols){alert('請先產生或貼上配對結果');return;}
-
   const d=new Date();
   const listName=`Pairs_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}`+
                  `${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}`+
                  `${String(d.getMinutes()).padStart(2,'0')}`;
-
   const chunks=chunkString(symbols);
-
-  /* 1. 告知 Bot 總段數 */
+  /\* 1. 告知 Bot 總段數 \*/
   Telegram.WebApp.sendData(JSON.stringify({
     action:'upload_to_tradingview_init',
     parts :chunks.length,
     listName
   }));
-
-  /* 2. 逐段送資料 */
+  /\* 2. 逐段送資料 \*/
   chunks.forEach((c,i)=>{
     Telegram.WebApp.sendData(JSON.stringify({
       action :'upload_to_tradingview_part',
@@ -352,3 +344,5 @@ function uploadToTradingView(){
 </script>
 </body>
 </html>
+---
+</query>
