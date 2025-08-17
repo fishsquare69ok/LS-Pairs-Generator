@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>交易對配對工具</title>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <style>
     body{padding:20px}
     .result-area{font-family:monospace;font-size:14px;white-space:pre-wrap}
@@ -17,6 +17,7 @@
 <body>
 <div class="container">
   <h2 class="mb-4">交易對配對工具</h2>
+
   <!--───────── 標準配對 ─────────-->
   <div class="form-section">
     <h4>標準配對功能</h4>
@@ -24,334 +25,303 @@
       <div class="col-md-6">
         <div class="form-group">
           <label for="leftInput">配對標的組 (左)</label>
-          <textarea class="form-control" id="leftInput" rows="5" placeholder="請輸入標的，用逗號或換行分隔"></textarea>
+          <textarea id="leftInput" class="form-control" rows="5" placeholder="請輸入標的，用逗號或換行分隔"></textarea>
         </div>
       </div>
       <div class="col-md-6">
         <div class="form-group">
           <label for="rightInput">配對標的組 (右)</label>
-          <textarea class="form-control" id="rightInput" rows="5" placeholder="請輸入標的，用逗號或換行分隔"></textarea>
+          <textarea id="rightInput" class="form-control" rows="5" placeholder="請輸入標的，用逗號或換行分隔"></textarea>
         </div>
       </div>
     </div>
+
     <div class="row mb-3 align-items-center">
       <div class="col-auto">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="addMajorCoins" />
+          <input type="checkbox" id="addMajorCoins" class="form-check-input">
           <label class="form-check-label" for="addMajorCoins">加入大幣配對</label>
         </div>
       </div>
       <div class="col-auto">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="priceSort" checked />
+          <input type="checkbox" id="priceSort" class="form-check-input" checked>
           <label class="form-check-label" for="priceSort">配對依照市價高低組合</label>
         </div>
-        <div class="loading" id="priceLoading" style="margin-left:25px">正在取得市價資料...</div>
+        <span id="priceLoading" class="loading ml-3">正在取得市價資料...</span>
       </div>
     </div>
-    <div class="mb-3">
-      <button type="button" class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
-      <button type="button" class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
-      <button type="button" class="btn btn-info mr-2" onclick="generateOneWayPairs()">單向配對</button>
-    </div>
+
+    <button class="btn btn-primary mr-2" onclick="generateFullPairs()">產生完整配對</button>
+    <button class="btn btn-success mr-2" onclick="generateUniquePairs()">產生不重複配對</button>
+    <button class="btn btn-info" onclick="generateOneWayPairs()">單向配對</button>
   </div>
+
   <!--───────── RS + 自訂配對 ─────────-->
   <div class="form-section">
     <h4>RS 清單建立強弱組合</h4>
     <div class="row">
       <div class="col-md-2">
-        <div class="form-group">
-          <label for="strongCount">強勢組數</label>
-          <input type="number" class="form-control" id="strongCount" value="10" min="0" />
-        </div>
+        <label for="strongCount">強勢組數</label>
+        <input id="strongCount" type="number" class="form-control" value="10" min="0">
       </div>
       <div class="col-md-2">
-        <div class="form-group">
-          <label for="weakCount">弱勢組數</label>
-          <input type="number" class="form-control" id="weakCount" value="10" min="0" />
-        </div>
+        <label for="weakCount">弱勢組數</label>
+        <input id="weakCount" type="number" class="form-control" value="10" min="0">
       </div>
       <div class="col-md-4">
-        <div class="form-group">
-          <label for="rsFile">上傳 RS 清單 (.txt)</label>
-          <input type="file" class="form-control-file" id="rsFile" accept=".txt" />
-        </div>
+        <label for="rsFile">上傳 RS 清單 (.txt)</label>
+        <input id="rsFile" type="file" class="form-control-file" accept=".txt">
       </div>
       <div class="col-md-4 mt-4 pt-2">
-        <button type="button" class="btn btn-secondary" id="autoFetchRsBtn">自動讀取最新 RS 清單</button>
-        <span class="loading" id="autoFetchLoading">讀取中...</span>
+        <button class="btn btn-secondary" id="autoFetchRsBtn">自動讀取最新 RS 清單</button>
+        <span id="autoFetchLoading" class="loading">讀取中...</span>
       </div>
     </div>
+
     <div class="form-check mb-2">
-      <input class="form-check-input" type="checkbox" id="enableCustomPairing" />
+      <input type="checkbox" id="enableCustomPairing" class="form-check-input">
       <label class="form-check-label" for="enableCustomPairing"><strong>加入自訂標的配對</strong></label>
     </div>
-    <div class="custom-pairing-options" id="customPairingOptions" style="display:none">
+    <div id="customPairingOptions" class="custom-pairing-options" style="display:none">
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="customAsStrong" />
+        <input type="checkbox" id="customAsStrong" class="form-check-input">
         <label class="form-check-label" for="customAsStrong">選項A：自訂標的作為強勢組</label>
         <div class="option-description">自訂標的 vs RS弱勢組</div>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="customAsWeak" />
+        <input type="checkbox" id="customAsWeak" class="form-check-input">
         <label class="form-check-label" for="customAsWeak">選項B：自訂標的作為弱勢組</label>
         <div class="option-description">RS強勢組 vs 自訂標的</div>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="customAsBoth" checked />
-        <label class="form-check-label" for="customAsBoth">選項C：自訂標的同時作為強勢和弱勢 <span class="badge badge-primary">預設</span></label>
+        <input type="checkbox" id="customAsBoth" class="form-check-input" checked>
+        <label class="form-check-label" for="customAsBoth">選項C：自訂標的同時作為強勢和弱勢<span class="badge badge-primary ml-1">預設</span></label>
         <div class="option-description">自訂標的 vs RS弱勢組，且 RS強勢組 vs 自訂標的</div>
       </div>
-      <small class="text-muted"><strong>說明：</strong>多選時會額外加入以上配對，並自動加區塊標籤</small>
     </div>
-    <button type="button" class="btn btn-warning mt-2" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
-  </div>
-  <!--───────── 生成結果 ─────────-->
-  <div class="mb-3">
-    <button type="button" class="btn btn-secondary" onclick="downloadResult()">下載結果</button>
 
-    <!-- ★★★ 新增匯入按鈕（預設隱藏） ★★★ -->
-    <button id="uploadToTradingView"
-            style="display:none;margin-left:8px;"
-            class="btn btn-success"
-            onclick="uploadToTradingView()">匯入 TradingView</button>
+    <button class="btn btn-warning mt-2" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
   </div>
-  <div class="form-group">
+
+  <!--───────── 生成結果 ─────────-->
+  <button class="btn btn-secondary mr-2" onclick="downloadResult()">下載結果</button>
+  <button id="uploadToTradingView" class="btn btn-success" style="display:none" onclick="uploadToTradingView()">匯入 TradingView</button>
+
+  <div class="form-group mt-3">
     <label for="result">生成結果</label>
-    <textarea class="form-control result-area" id="result" rows="15" readonly></textarea>
+    <textarea id="result" class="form-control result-area" rows="15" readonly></textarea>
   </div>
 </div>
-<!───────────── JavaScript ─────────────>
+
+<!--───────────── 主功能 JavaScript ─────────────-->
 <script>
-/* == 全域變數 == */
+/* ========= 全域變數 ========= */
 let result = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
-const apiKey = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
-/* == UI 事件處理 == */
+const apiKey      = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
+
+/* ========= UI 行為 ========= */
 document.getElementById('addMajorCoins').addEventListener('change', e => {
   if (e.target.checked) document.getElementById('leftInput').value = majorCoins.join('\n');
 });
 document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
-/* == 工具函式 == */
+
+/* ========= 工具函式 ========= */
 function handleSymbolFormat(s) {
-  s = s.trim().toUpperCase().replace('USDC.P', 'USDT.P');
+  s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
 }
 const splitInput = str => str.split(/[\s,]+/).filter(x => x.trim());
-async function getBinancePrices(symbols) {
-  const apiSymbols = symbols.map(s => s.replace('BINANCE:', '').replace('.P', ''));
+
+async function getBinancePrices(symbolArr) {
   try {
-    const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
-    const d = await r.json();
-    const p = {};
-    d.forEach(i => { if (apiSymbols.includes(i.symbol)) p[i.symbol] = +i.price; });
-    return p;
-  } catch {
-    return {};
-  }
+    const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
+    const data= await res.json();
+    const apiSyms = symbolArr.map(s=>s.replace('BINANCE:','').replace('.P',''));
+    const map={};
+    data.forEach(i=>{if(apiSyms.includes(i.symbol)) map[i.symbol]=+i.price;});
+    return map;
+  } catch { return {}; }
 }
+
 async function sortPairsByPrice(pairs) {
   if (!document.getElementById('priceSort').checked) return pairs;
-  document.getElementById('priceLoading').style.display = 'block';
-  try {
-    const set = new Set();
-    pairs.forEach(p => {
-      if (p.includes('/')) {
-        const [l, r] = p.split('/');
-        set.add(l); set.add(r);
+  document.getElementById('priceLoading').style.display='inline';
+  try{
+    const s = new Set();
+    pairs.forEach(p=>{
+      if(p.includes('/')){
+        const [l,r]=p.split('/');
+        s.add(l);s.add(r);
       }
     });
-    const price = await getBinancePrices([...set]);
-    return pairs.map(p => {
-      if (!p.includes('/')) return p;
-      const [l, r] = p.split('/'),
-            lp = price[l.replace('BINANCE:', '').replace('.P', '')] || 0,
-            rp = price[r.replace('BINANCE:', '').replace('.P', '')] || 0;
-      return lp >= rp ? `${l}/${r}` : `${r}/${l}`;
+    const prices = await getBinancePrices([...s]);
+    return pairs.map(p=>{
+      if(!p.includes('/')) return p;
+      const [l,r]=p.split('/');
+      const lp = prices[l.replace('BINANCE:','').replace('.P','')]||0;
+      const rp = prices[r.replace('BINANCE:','').replace('.P','')]||0;
+      return lp>=rp ? `${l}/${r}`:`${r}/${l}`;
     });
   } finally {
-    document.getElementById('priceLoading').style.display = 'none';
+    document.getElementById('priceLoading').style.display='none';
   }
 }
-/* == 標準配對 == */
-async function generateFullPairs() {
-  const left = splitInput(document.getElementById('leftInput').value),
-        right = splitInput(document.getElementById('rightInput').value),
-        all = [...new Set([...left, ...right])];
-  const pairs = [];
-  for (let i = 0; i < all.length; i++)
-    for (let j = 0; j < all.length; j++)
-      if (i !== j) pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+
+/* ========= 標準配對 ========= */
+async function generateFullPairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value),
+        all  = [...new Set([...left,...right])];
+  const pairs=[];
+  for(let i=0;i<all.length;i++)
+    for(let j=0;j<all.length;j++)
+      if(i!==j)pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
 }
-async function generateUniquePairs() {
-  const left = splitInput(document.getElementById('leftInput').value),
-        right = splitInput(document.getElementById('rightInput').value),
-        all = [...new Set([...left, ...right])];
-  const pairs = [];
-  for (let i = 0; i < all.length; i++)
-    for (let j = i + 1; j < all.length; j++)
+async function generateUniquePairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value),
+        all  = [...new Set([...left,...right])];
+  const pairs=[];
+  for(let i=0;i<all.length;i++)
+    for(let j=i+1;j<all.length;j++)
       pairs.push(`${handleSymbolFormat(all[i])}/${handleSymbolFormat(all[j])}`);
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
 }
-async function generateOneWayPairs() {
-  const left = splitInput(document.getElementById('leftInput').value),
-        right = splitInput(document.getElementById('rightInput').value);
-  const pairs = [];
-  left.forEach(l => right.forEach(r => {
-    const lf = handleSymbolFormat(l), rf = handleSymbolFormat(r);
-    if (lf !== rf) pairs.push(`${lf}/${rf}`);
+async function generateOneWayPairs(){
+  const left = splitInput(leftInput.value),
+        right= splitInput(rightInput.value);
+  const pairs=[];
+  left.forEach(l=>right.forEach(r=>{
+    const lf=handleSymbolFormat(l),rf=handleSymbolFormat(r);
+    if(lf!==rf)pairs.push(`${lf}/${rf}`);
   }));
-  result = (await sortPairsByPrice(pairs)).join(',\n');
-  document.getElementById('result').value = result;
+  result=(await sortPairsByPrice(pairs)).join(',\n');
+  resultArea.value=result;
 }
-/* == RS 清單配對（已全面重寫） == */
-async function generateRSPairs() {
-  /* 讀取 RS 清單文字 */
-  let text = '';
-  const fileInput = document.getElementById('rsFile');
-  if (fileInput.files.length > 0) {
-    text = await fileInput.files[0].text();
-  } else if (latestRsContent) {
-    text = latestRsContent;
-  } else {
-    alert('請先上傳 RS 清單或使用自動讀取！');
-    return;
-  }
-  /* 解析使用者輸入的組數（可為 0） */
-  const strongCnt = parseInt(document.getElementById('strongCount').value) || 0,
-        weakCnt   = parseInt(document.getElementById('weakCount').value)   || 0;
-  /* 前置過濾 */
-  const lines = text.split('\n')
-                    .map(l => l.trim())
-                    .filter(l => l && !l.includes('BINANCE:BTCDOMUSDT.P'));
-  const hasCustomPairing = document.getElementById('enableCustomPairing').checked;
-  /* = 驗證條件 = */
-  if (!hasCustomPairing) {
-    if (strongCnt === 0 || weakCnt === 0) {
-      alert('錯誤：使用純 RS 清單時，強弱組數都必須大於 0');
-      return;
-    }
-  } else {
-    if (strongCnt === 0 && weakCnt === 0) {
-      alert('錯誤：強弱組數不可同時為 0');
-      return;
-    }
-  }
-  /* = 依輸入組數取資料 = */
-  const strongSyms = strongCnt > 0 ? lines.slice(0, strongCnt).map(handleSymbolFormat) : [],
-        weakSyms   = weakCnt   > 0 ? lines.slice(-weakCnt).map(handleSymbolFormat)   : [];
-  /* = 配對區塊 = */
-  const blocks = { A: [], B: [], C: [] };
-  /* A. RS 強勢 vs RS 弱勢 */
-  if (strongSyms.length && weakSyms.length) {
-    strongSyms.forEach(s => weakSyms.forEach(w => { if (s !== w) blocks.A.push(`${s}/${w}`); }));
-  }
-  if (hasCustomPairing) {
-    const custom = [...new Set(splitInput(document.getElementById('leftInput').value)
-                               .map(handleSymbolFormat))];
-    /* B. 自訂作強勢 */
-    if (document.getElementById('customAsStrong').checked && weakSyms.length) {
-      custom.forEach(c => weakSyms.forEach(w => { if (c !== w) blocks.B.push(`${c}/${w}`); }));
-    }
-    /* C. 自訂作弱勢 */
-    if (document.getElementById('customAsWeak').checked && strongSyms.length) {
-      strongSyms.forEach(s => custom.forEach(c => { if (s !== c) blocks.C.push(`${s}/${c}`); }));
-    }
-    /* B+C. 自訂同時強弱 */
-    if (document.getElementById('customAsBoth').checked) {
-      if (weakSyms.length) {
-        custom.forEach(c => weakSyms.forEach(w => { if (c !== w) blocks.B.push(`${c}/${w}`); }));
-      }
-      if (strongSyms.length) {
-        strongSyms.forEach(s => custom.forEach(c => { if (s !== c) blocks.C.push(`${s}/${c}`); }));
-      }
+
+/* ========= RS 清單配對（簡化） ========= */
+async function generateRSPairs(){
+  let txt='';
+  const f = rsFile.files[0];
+  if(f)      txt=await f.text();
+  else if(latestRsContent) txt=latestRsContent;
+  else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
+
+  const strongN=+strongCount.value||0,
+        weakN  =+weakCount.value||0,
+        lines  = txt.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  const strong = strongN?lines.slice(0,strongN).map(handleSymbolFormat):[],
+        weak   = weakN?lines.slice(-weakN).map(handleSymbolFormat):[];
+
+  const customEnabled=enableCustomPairing.checked;
+  const customSyms = customEnabled?splitInput(leftInput.value).map(handleSymbolFormat):[];
+
+  const blocks=[];
+
+  /* A: RS 強 vs RS 弱 */
+  strong.forEach(s=>weak.forEach(w=>{if(s!==w)blocks.push(`${s}/${w}`);} ));
+
+  /* B/C 自訂 */
+  if(customEnabled){
+    if(customAsStrong.checked)
+      customSyms.forEach(c=>weak.forEach(w=>{if(c!==w)blocks.push(`${c}/${w}`);}));
+    if(customAsWeak.checked)
+      strong.forEach(s=>customSyms.forEach(c=>{if(s!==c)blocks.push(`${s}/${c}`);}));
+    if(customAsBoth.checked){
+      customSyms.forEach(c=>weak.forEach(w=>{if(c!==w)blocks.push(`${c}/${w}`);}));
+      strong.forEach(s=>customSyms.forEach(c=>{if(s!==c)blocks.push(`${s}/${c}`);}));
     }
   }
-  /* 彙整輸出 */
-  let out = [];
-  if (blocks.A.length) out.push('###RS強勢對弱勢', ...blocks.A);
-  if (blocks.B.length) out.push('###自訂對弱勢',   ...blocks.B);
-  if (blocks.C.length) out.push('###自訂對強勢',   ...blocks.C);
-  result = (await sortPairsByPrice(out)).join(',\n');
-  document.getElementById('result').value = result;
+
+  result=(await sortPairsByPrice(blocks)).join(',\n');
+  resultArea.value=result;
 }
-/* == 雲端硬碟自動讀取 == */
-document.getElementById('autoFetchRsBtn').addEventListener('click', async () => {
-  const load = document.getElementById('autoFetchLoading');
-  load.style.display = 'inline';
-  try {
-    const url = `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${apiKey}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    latestRsContent = await res.text();
-    document.getElementById('result').value = latestRsContent;
-    alert('✅ 讀取成功！');
-  } catch (e) {
-    alert('❌ 讀取失敗: ' + e.message);
-  } finally {
-    load.style.display = 'none';
-  }
+
+/* ========= 雲端硬碟讀取 ========= */
+autoFetchRsBtn.addEventListener('click',async()=>{
+  autoFetchLoading.style.display='inline';
+  try{
+    const url=`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${apiKey}`;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    latestRsContent=await res.text();
+    resultArea.value=latestRsContent;
+    alert('✅ 讀取成功');
+  }catch(e){alert('❌ 讀取失敗: '+e.message);}
+  finally{autoFetchLoading.style.display='none';}
 });
-/* == 下載結果 == */
-function downloadResult() {
-  if (!result) {
-    alert('請先產生配對再下載！');
-    return;
-  }
-  const d  = new Date(),
-        ts = d.getFullYear() +
-             ('0' + (d.getMonth() + 1)).slice(-2) +
-             ('0' +  d.getDate()).slice(-2) +
-             ('0' +  d.getHours()).slice(-2) +
-             ('0' +  d.getMinutes()).slice(-2);
-  const blob = new Blob([result], { type: 'text/plain' }),
-        url  = URL.createObjectURL(blob),
-        a    = document.createElement('a');
-  a.href = url;
-  a.download = `LS_Pairs_${ts}.txt`;
-  document.body.append(a);
-  a.click();
-  a.remove();
+
+/* ========= 下載結果 ========= */
+function downloadResult(){
+  if(!result){alert('請先產生配對再下載');return;}
+  const d=new Date();
+  const ts=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+
+           String(d.getDate()).padStart(2,'0')+String(d.getHours()).padStart(2,'0')+
+           String(d.getMinutes()).padStart(2,'0');
+  const blob=new Blob([result],{type:'text/plain'});
+  const url =URL.createObjectURL(blob);
+  const a   =document.createElement('a');
+  a.href=url;a.download=`LS_Pairs_${ts}.txt`;document.body.append(a);a.click();a.remove();
   URL.revokeObjectURL(url);
 }
 </script>
 
-<!-- =========== 新增：Telegram Web-App 匯入腳本 =========== -->
+<!--───────────── Telegram Web-App 內核────────────-->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-(function () {
-  const inTG = () => window.Telegram && Telegram.WebApp;
-  document.addEventListener('DOMContentLoaded', () => {
-    if (!inTG()) return;
+/* ========= 讓按鈕只在 Telegram 內顯示 ========= */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(window.Telegram&&Telegram.WebApp){
     Telegram.WebApp.ready();
-    document.getElementById('uploadToTradingView').style.display = 'inline-block';
-  });
-  window.uploadToTradingView = function () {
-    if (!inTG()) { alert('此功能僅在 Telegram 內使用'); return; }
-    const symbols = document.getElementById('result').value.trim();
-    if (!symbols) { alert('請先產生或貼上配對結果'); return; }
-    const d = new Date();
-    const listName =
-      `Pairs_${d.getFullYear()}${(d.getMonth()+1+'').padStart(2,'0')}` +
-      `${(d.getDate()+'').padStart(2,'0')}_${(d.getHours()+'').padStart(2,'0')}` +
-      `${(d.getMinutes()+'').padStart(2,'0')}`;
-    // --- 新增 log (這一行) ---
-    console.log("[WebApp] sendData", { action: 'upload_to_tradingview', symbols, listName });
+    document.getElementById('uploadToTradingView').style.display='inline-block';
+  }
+});
+
+/* ========= 分段上傳 (避開 4 KB 限制) ========= */
+function chunkString(str,size=3800){
+  const out=[];
+  for(let i=0;i<str.length;i+=size) out.push(str.slice(i,i+size));
+  return out;
+}
+
+function uploadToTradingView(){
+  if(!(window.Telegram&&Telegram.WebApp)){alert('請在 Telegram 內使用');return;}
+  const symbols=resultArea.value.trim();
+  if(!symbols){alert('請先產生或貼上配對結果');return;}
+
+  const d=new Date();
+  const listName=`Pairs_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}`+
+                 `${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}`+
+                 `${String(d.getMinutes()).padStart(2,'0')}`;
+
+  const chunks=chunkString(symbols);
+
+  /* 1. 告知 Bot 總段數 */
+  Telegram.WebApp.sendData(JSON.stringify({
+    action:'upload_to_tradingview_init',
+    parts :chunks.length,
+    listName
+  }));
+
+  /* 2. 逐段送資料 */
+  chunks.forEach((c,i)=>{
     Telegram.WebApp.sendData(JSON.stringify({
-      action : 'upload_to_tradingview',
-      symbols: symbols,
-      listName: listName
+      action :'upload_to_tradingview_part',
+      idx    :i+1,
+      listName,
+      symbols:c
     }));
-    // 若希望送出後直接關閉 Web-App，可取消註解下一行
-    // Telegram.WebApp.close();
-  };
-})();
+  });
+}
 </script>
 </body>
 </html>
