@@ -210,44 +210,69 @@ async function generateOneWayPairs(){
   resultArea.value=result;
 }
 
-/* ========= RS 清單配對（簡化） ========= */
-async function generateRSPairs(){
-  let txt='';
+<script>
+/* === RS 清單配對（含區塊標籤） === */
+async function generateRSPairs() {
+  /* 讀取 RS 清單文字 -------------------- */
+  let txt = '';
   const f = rsFile.files[0];
-  if(f)      txt=await f.text();
-  else if(latestRsContent) txt=latestRsContent;
+  if (f)                txt = await f.text();
+  else if (latestRsContent) txt = latestRsContent;
   else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
 
-  const strongN=+strongCount.value||0,
-        weakN  =+weakCount.value||0,
-        lines  = txt.split('\n').map(l=>l.trim()).filter(Boolean);
+  /* 基本資料 --------------------------- */
+  const strongN = +strongCount.value || 0,
+        weakN   = +weakCount.value   || 0,
+        lines   = txt.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const strong = strongN?lines.slice(0,strongN).map(handleSymbolFormat):[],
-        weak   = weakN?lines.slice(-weakN).map(handleSymbolFormat):[];
+  const strong = strongN ? lines.slice(0,  strongN).map(handleSymbolFormat) : [],
+        weak   = weakN   ? lines.slice(-weakN).map(handleSymbolFormat)     : [];
 
-  const customEnabled=enableCustomPairing.checked;
-  const customSyms = customEnabled?splitInput(leftInput.value).map(handleSymbolFormat):[];
+  const customEnabled = enableCustomPairing.checked;
+  const customSyms    = customEnabled ? splitInput(leftInput.value).map(handleSymbolFormat) : [];
 
-  const blocks=[];
+  /* 區塊組裝 --------------------------- */
+  const blocks = [];   // 每個元素 { label:'###...', pairs:[...] }
 
-  /* A: RS 強 vs RS 弱 */
-  strong.forEach(s=>weak.forEach(w=>{if(s!==w)blocks.push(`${s}/${w}`);} ));
+  /* A. RS 強 vs RS 弱 */
+  if (strong.length && weak.length) {
+    const pairsA = [];
+    strong.forEach(s => weak.forEach(w => { if (s !== w) pairsA.push(`${s}/${w}`); }));
+    blocks.push({ label: '###RS強勢對弱勢', pairs: pairsA });
+  }
 
-  /* B/C 自訂 */
-  if(customEnabled){
-    if(customAsStrong.checked)
-      customSyms.forEach(c=>weak.forEach(w=>{if(c!==w)blocks.push(`${c}/${w}`);}));
-    if(customAsWeak.checked)
-      strong.forEach(s=>customSyms.forEach(c=>{if(s!==c)blocks.push(`${s}/${c}`);}));
-    if(customAsBoth.checked){
-      customSyms.forEach(c=>weak.forEach(w=>{if(c!==w)blocks.push(`${c}/${w}`);}));
-      strong.forEach(s=>customSyms.forEach(c=>{if(s!==c)blocks.push(`${s}/${c}`);}));
+  if (customEnabled) {
+    const needB = customAsStrong.checked || customAsBoth.checked;
+    const needC = customAsWeak.checked   || customAsBoth.checked;
+
+    /* B. 自訂作強勢 → 自訂 vs RS 弱勢 */
+    if (needB && weak.length) {
+      const pairsB = [];
+      customSyms.forEach(c => weak.forEach(w => { if (c !== w) pairsB.push(`${c}/${w}`); }));
+      blocks.push({ label: '###自訂對弱勢', pairs: pairsB });
+    }
+
+    /* C. 自訂作弱勢 → RS 強勢 vs 自訂 */
+    if (needC && strong.length) {
+      const pairsC = [];
+      strong.forEach(s => customSyms.forEach(c => { if (s !== c) pairsC.push(`${s}/${c}`); }));
+      blocks.push({ label: '###自訂對強勢', pairs: pairsC });
     }
   }
 
-  result=(await sortPairsByPrice(blocks)).join(',\n');
-  resultArea.value=result;
+  /* 把各區塊排好序後輸出 ------------------ */
+  const outLines = [];
+  for (const blk of blocks) {
+    if (!blk.pairs.length) continue;            // 空區塊跳過
+    outLines.push(blk.label);                   // 先放標籤
+    const sorted = await sortPairsByPrice(blk.pairs);
+    outLines.push(...sorted);                   // 再放排序後的 pairs
+  }
+
+  result = outLines.join(',\n');
+  resultArea.value = result;
 }
+</script>
 
 /* ========= 雲端硬碟讀取 ========= */
 autoFetchRsBtn.addEventListener('click',async()=>{
