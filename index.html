@@ -101,7 +101,7 @@
   <button class="btn btn-secondary mr-2" onclick="downloadResult()">下載結果</button>
   <button id="uploadToTradingView" class="btn btn-success" style="display:none" onclick="uploadToTradingView()">匯入 TradingView</button>
   <span id="importLimitNote" style="color:#dc3545;display:inline-block;margin-left:10px;font-size:13px;">
-    注意：內容超過4000字時，Telegram官方會阻擋資料，請簡化清單或分批匯入。
+    注意：「內容超過4000字」會被拒絕傳送，請簡化清單或下載txt傳Bot。
   </span>
   <div class="form-group mt-3">
     <label for="result">生成結果</label>
@@ -110,7 +110,7 @@
 </div>
 <!--───────────── 主功能 JavaScript ─────────────-->
 <script>
-// === 先抓常用 DOM 物件 ===
+// 先抓常用 DOM 物件
 var resultArea        = document.getElementById('result');
 var leftInput         = document.getElementById('leftInput');
 var rightInput        = document.getElementById('rightInput');
@@ -124,13 +124,12 @@ var customAsStrong    = document.getElementById('customAsStrong');
 var customAsWeak      = document.getElementById('customAsWeak');
 var customAsBoth      = document.getElementById('customAsBoth');
 
-// === 全域變數 ===
 let result = '', latestRsContent = '';
 const majorCoins = ['BTC','ETH','ETC','ATOM','POL','ADA','AVAX','DOT','BNB','SOL','XRP','LTC','DOGE'];
 const driveFileId = '1QOqbo5CMv-1Danv-iJk8fsen_QnCXN6v';
 const apiKey      = 'AIzaSyBFLHlDiNbiTEYtnoqx_-bj4D2ePGHeHnw';
 
-// === UI 行為 ===
+// UI行為
 document.getElementById('addMajorCoins').addEventListener('change', e => {
   if (e.target.checked) leftInput.value = majorCoins.join('\n');
 });
@@ -138,7 +137,6 @@ document.getElementById('enableCustomPairing').addEventListener('change', e => {
   document.getElementById('customPairingOptions').style.display = e.target.checked ? 'block' : 'none';
 });
 
-// === 工具函式 ===
 function handleSymbolFormat(s) {
   s = s.trim().toUpperCase().replace('USDC.P','USDT.P');
   return /^BINANCE:/.test(s) ? s : `BINANCE:${s}USDT.P`;
@@ -178,7 +176,7 @@ async function sortPairsByPrice(pairs) {
   }
 }
 
-// === 標準配對 ===
+// 標準配對
 async function generateFullPairs(){
   const left = splitInput(leftInput.value),
         right= splitInput(rightInput.value),
@@ -213,16 +211,14 @@ async function generateOneWayPairs(){
   resultArea.value=result;
 }
 
-// === RS 清單配對（含區塊標籤） ===
+// RS配對
 async function generateRSPairs() {
-  /* 讀取 RS 清單文字 -------------------- */
   let txt = '';
   const f = rsFile.files[0];
   if (f)                txt = await f.text();
   else if (latestRsContent) txt = latestRsContent;
   else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
 
-  /* 基本資料 --------------------------- */
   const strongN = +strongCount.value || 0,
         weakN   = +weakCount.value   || 0,
         lines   = txt.split('\n').map(l => l.trim()).filter(Boolean);
@@ -233,28 +229,20 @@ async function generateRSPairs() {
   const customEnabled = enableCustomPairing.checked;
   const customSyms    = customEnabled ? splitInput(leftInput.value).map(handleSymbolFormat) : [];
 
-  /* 區塊組裝 --------------------------- */
-  const blocks = [];   // 每個元素 { label:'###...', pairs:[...] }
-
-  /* A. RS 強 vs RS 弱 */
+  const blocks = [];
   if (strong.length && weak.length) {
     const pairsA = [];
     strong.forEach(s => weak.forEach(w => { if (s !== w) pairsA.push(`${s}/${w}`); }));
     blocks.push({ label: '###RS強勢對弱勢', pairs: pairsA });
   }
-
   if (customEnabled) {
     const needB = customAsStrong.checked || customAsBoth.checked;
     const needC = customAsWeak.checked   || customAsBoth.checked;
-
-    /* B. 自訂作強勢 → 自訂 vs RS 弱勢 */
     if (needB && weak.length) {
       const pairsB = [];
       customSyms.forEach(c => weak.forEach(w => { if (c !== w) pairsB.push(`${c}/${w}`); }));
       blocks.push({ label: '###自訂對弱勢', pairs: pairsB });
     }
-
-    /* C. 自訂作弱勢 → RS 強勢 vs 自訂 */
     if (needC && strong.length) {
       const pairsC = [];
       strong.forEach(s => customSyms.forEach(c => { if (s !== c) pairsC.push(`${s}/${c}`); }));
@@ -262,20 +250,18 @@ async function generateRSPairs() {
     }
   }
 
-  /* 把各區塊排好序後輸出 ------------------ */
   const outLines = [];
   for (const blk of blocks) {
-    if (!blk.pairs.length) continue;            // 空區塊跳過
-    outLines.push(blk.label);                   // 先放標籤
+    if (!blk.pairs.length) continue;
+    outLines.push(blk.label);
     const sorted = await sortPairsByPrice(blk.pairs);
-    outLines.push(...sorted);                   // 再放排序後的 pairs
+    outLines.push(...sorted);
   }
-
   result = outLines.join(',\n');
   resultArea.value = result;
 }
 
-// === 雲端硬碟讀取 ===
+// 雲端硬碟讀取
 autoFetchRsBtn.addEventListener('click',async()=>{
   autoFetchLoading.style.display='inline';
   try{
@@ -289,7 +275,7 @@ autoFetchRsBtn.addEventListener('click',async()=>{
   finally{autoFetchLoading.style.display='none';}
 });
 
-// === 下載結果 ===
+// 下載結果
 function downloadResult(){
   if(!result){alert('請先產生配對再下載');return;}
   const d=new Date();
@@ -313,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ==== 單次送 bot，附檢查與警告 ====
+// 只發一包資料（無分段）
 async function uploadToTradingView() {
   if (!(window.Telegram && Telegram.WebApp)) {
     alert('請在 Telegram 內使用');
@@ -325,7 +311,7 @@ async function uploadToTradingView() {
     return;
   }
   if (symbols.length > 3900) {
-    alert('⚠️ 您的清單過大（超過4000字），Telegram官方無法直接匯入。請縮減清單或分批處理！');
+    alert('⚠️ 您的清單過大（超過4000字），Telegram官方無法直接匯入。請縮減清單或分批處理，或直接下載txt傳Bot。');
     return;
   }
   const d = new Date();
@@ -334,18 +320,10 @@ async function uploadToTradingView() {
     `${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}` +
     `${String(d.getMinutes()).padStart(2, '0')}`;
 
-  // 直接送init和part（不分段）
+  // 一次包所有資訊，Bot只需一次接收即可
   Telegram.WebApp.sendData(
     JSON.stringify({
-      action: 'upload_to_tradingview_init',
-      parts: 1,
-      listName,
-    })
-  );
-  Telegram.WebApp.sendData(
-    JSON.stringify({
-      action: 'upload_to_tradingview_part',
-      idx: 1,
+      action: 'upload_to_tradingview',
       listName,
       symbols: symbols,
     })
