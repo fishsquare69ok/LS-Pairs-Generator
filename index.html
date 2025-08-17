@@ -333,6 +333,7 @@ function uploadToTradingView(){
   }));
   /\* 2. 逐段送資料 \*/
   chunks.forEach((c,i)=>{
+    console.log('send part', i+1, 'len', c.length);    // ← 加這行
     Telegram.WebApp.sendData(JSON.stringify({
       action :'upload_to_tradingview_part',
       idx    :i+1,
