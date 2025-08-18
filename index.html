@@ -16,7 +16,7 @@
 </head>
 <body>
 <div class="container">
-  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250818-0350)</small></h2>
+  <h2 class="mb-4">交易對配對工具<small style="font-size:60%; color:#666; margin-left:8px;">(v20250819-0518)</small></h2>
   <!--───────── 標準配對 ─────────-->
   <div class="form-section">
     <h4>標準配對功能</h4>
@@ -96,6 +96,8 @@
       </div>
     </div>
     <button class="btn btn-warning mt-2" onclick="generateRSPairs()">使用 RS 清單建立強弱組合</button>
+	<button class="btn btn-secondary mt-2 ml-2" onclick="generateRSListOnly()">只建立 RS 清單</button>
+	<span style="font-size:12px; color:#6c757d; margin-left:10px;">(依照強弱組數建立)</span>
   </div>
   <!--───────── 生成結果 ─────────-->
   <button class="btn btn-secondary mr-2" onclick="downloadResult()">下載結果</button>
@@ -351,6 +353,62 @@ async function uploadToTradingView() {
     })
   );
   alert('請求已送出，後端處理中...');
+}
+
+// 新增函數：generateRSListOnly (類似 generateRSPairs，但只提取清單，不生成配對)
+async function generateRSListOnly() {
+  let txt = '';
+  const f = rsFile.files;
+  if (f.length) txt = await f[0].text();  // 注意：修正為 f.text() 以符合 File API
+  else if (latestRsContent) txt = latestRsContent;
+  else { alert('請先上傳 RS 清單或使用自動讀取'); return; }
+  
+  const strongN = +strongCount.value || 0,
+        weakN   = +weakCount.value   || 0,
+        lines   = txt.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  // 提取強勢 (前 N 個) 和弱勢 (後 N 個)
+  const strong = strongN ? lines.slice(0, strongN).map(handleSymbolFormat) : [];
+  const weak   = weakN   ? lines.slice(-weakN).map(handleSymbolFormat)   : [];
+  
+  // 組合結果：強勢在弱勢前，標記分隔 (可依需求調整格式)
+  const outLines = [];
+  if (strong.length) {
+    outLines.push('###強勢組');
+    outLines.push(...strong);
+  }
+  if (weak.length) {
+    outLines.push('###弱勢組');
+    outLines.push(...weak);
+  }
+  
+  result = outLines.join(',\n');
+  resultArea.value = result;
+
+  // 收集 params (新增模式 'rs_list_only')
+  pairsParams = collectPairsParams('rs_list_only');
+}
+
+// 修改 collectPairsParams：新增對 'rs_list_only' 的支持 (只需加一個 if)
+function collectPairsParams(mode) {
+  const baseParams = {
+    mode: mode,
+    left: splitInput(leftInput.value),
+    right: splitInput(rightInput.value),
+    addMajor: document.getElementById('addMajorCoins').checked,
+    priceSort: document.getElementById('priceSort').checked,
+    strongCount: +document.getElementById('strongCount').value || 0,
+    weakCount: +document.getElementById('weakCount').value || 0,
+    customOption: getCustomOption(),
+    useRS: (mode === 'rs' || mode === 'rs_list_only')  // 修改：新增對 rs_list_only 的支持
+  };
+  
+  // 如果是 rs_list_only，不需要 customOption 或其他配對相關
+  if (mode === 'rs_list_only') {
+    baseParams.customOption = null;  // 停用自訂配對
+  }
+  
+  return baseParams;
 }
 </script>
 
